@@ -10,6 +10,7 @@ import numpy as np
 import rasterio
 from rasterio import CRS, DatasetReader
 from rasterio.vrt import WarpedVRT
+from rasterio.windows import from_bounds
 from torch import Tensor
 from torchgeo.datasets import GeoDataset, BoundingBox
 from torchgeo.datasets.utils import disambiguate_timestamp
@@ -53,7 +54,6 @@ class Sentinel2Dataset(GeoDataset):
         self.cache = cache
         self.kwargs = kwargs
 
-        # TODO: geo.py#336 loop insert data
         # Populate the dataset index
         i = 0
         pathname = os.path.join(root, "**", self.filename_glob)
@@ -138,7 +138,17 @@ class Sentinel2Dataset(GeoDataset):
         def copy(x, y):
             return np.where(np.isnan(x), y, x)
 
-        return Tensor(reduce(copy, (f.read(v) for f, vs in vrt_fhs for v in vs)))
+        bounds = (query.minx, query.miny, query.maxx, query.maxy)
+        out_width = round((query.maxx - query.minx) / self.res)
+        out_height = round((query.maxy - query.miny) / self.res)
+        out_shape = (out_height, out_width)
+
+        tensors = [f.read(v, out_shape=out_shape, window=from_bounds(*bounds, f.transform))[None, :]
+                   for f, vs in vrt_fhs for v in vs]
+
+        if len(tensors) == 1:
+            return Tensor(tensors[0])
+        return Tensor(reduce(copy, tensors)[None, :])
 
     @lru_cache(maxsize=128)
     def _cached_load_warp_file(self, filepath: str) -> DatasetReader:
