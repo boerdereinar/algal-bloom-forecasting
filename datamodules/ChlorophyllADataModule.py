@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from typing import Any, Sequence, Dict
+from typing import Any, Sequence
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Sampler
@@ -8,6 +8,7 @@ from torchgeo.samplers import RandomBatchGeoSampler, GridGeoSampler
 
 from edegruyl.datasets.ChlorophyllADataset import ChlorophyllADataset
 from edegruyl.datasets.Sentinel2Dataset import Sentinel2Dataset
+from edegruyl.transforms.ConvertToLabel import ConvertToLabel
 
 
 class ChlorophyllADataModule(LightningDataModule):
@@ -45,17 +46,9 @@ class ChlorophyllADataModule(LightningDataModule):
     def _train_test_split(bounds: BoundingBox) -> (BoundingBox, BoundingBox):
         return bounds, bounds
 
-    @staticmethod
-    def _image_to_label(x: Dict[str, Any]) -> Dict[str, Any]:
-        return dict(
-            label=x["image"],
-            crs_label=x["crs"],
-            bbox_label=x["bbox"])
-
     def setup(self, stage: str) -> None:
         self.sentinel2 = Sentinel2Dataset(self.data_dir)
-        self.chlorophyll = ChlorophyllADataset(self.label_dir, self.sentinel2.crs, self.sentinel2.res,
-                                               transforms=self._image_to_label)
+        self.chlorophyll = ChlorophyllADataset(self.label_dir, self.sentinel2.crs, self.sentinel2.res, ConvertToLabel())
         self.dataset = self.sentinel2 & self.chlorophyll
 
         train_roi, test_roi = self._train_test_split(self.dataset.bounds)
