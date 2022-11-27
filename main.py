@@ -57,12 +57,9 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
 
 def main() -> None:
     # Get all class names
-    preprocessors = [submodule.name[:-12] for submodule in iter_modules(edegruyl.preprocessing.__path__)
-                     if submodule.name.endswith("Preprocessor") and len(submodule.name) > 12]
-    models = [submodule.name[:-10] for submodule in iter_modules(edegruyl.models.__path__)
-              if submodule.name.endswith("Classifier") and len(submodule.name) > 10]
-    data_modules = [submodule.name[:-10] for submodule in iter_modules(edegruyl.datamodules.__path__)
-                    if submodule.name.endswith("DataModule") and len(submodule.name) > 10]
+    preprocessors = list(get_classes_in_module_endswith(edegruyl.preprocessing.__path__, "Preprocessor"))
+    models = list(get_classes_in_module_endswith(edegruyl.models.__path__, "Classifier"))
+    data_modules = list(get_classes_in_module_endswith(edegruyl.datamodules.__path__, "DataModule"))
 
     parser = ArgumentParser()
     subparsers = parser.add_subparsers()
