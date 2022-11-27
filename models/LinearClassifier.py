@@ -8,15 +8,17 @@ from torch.optim.adam import Adam
 from torch.optim.optimizer import Optimizer
 
 
-class LinearChlorophyllAClassifier(LightningModule):
+class LinearClassifier(LightningModule):
     def __init__(self, learning_rate: float = 0.01, **kwargs: Any):
-        super(LinearChlorophyllAClassifier, self).__init__()
+        super(LinearClassifier, self).__init__()
         self.learning_rate = learning_rate
 
         self.save_hyperparameters()
 
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        parser = parent_parser.add_argument_group("Model")
+        parser.add_argument("-lr", "--learning-rate", type=float, default=0.01, help="The learning rate of the model.")
         return parent_parser
 
     def forward(self, x: Tensor) -> Tensor:

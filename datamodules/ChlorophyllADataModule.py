@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from typing import Any, Sequence
+from typing import Any, Sequence, Tuple
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Sampler
@@ -40,10 +40,18 @@ class ChlorophyllADataModule(LightningDataModule):
 
     @staticmethod
     def add_datamodule_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        parser = parent_parser.add_argument_group("Data")
+        parser.add_argument("-d", "--data-dir", type=str, help="The data directory.", required=True)
+        parser.add_argument("-l", "--label-dir", type=str, help="The label directory.", required=True)
+        parser.add_argument("-b", "--batch-size", type=int, help="The batch size.", default=64)
+        parser.add_argument("--num-workers", type=int, help="How many subprocesses to use for data loading.", default=0)
+        parser.add_argument("--patch-size", type=int, help="The size of the patches sampled", default=256)
+        parser.add_argument("--length", type=int, help="Number of samples per epoch.", default=1000)
+        parser.add_argument("--stride", type=int, help="Distance to skip each patch.", default=128)
         return parent_parser
 
     @staticmethod
-    def _train_test_split(bounds: BoundingBox) -> (BoundingBox, BoundingBox):
+    def _train_test_split(bounds: BoundingBox) -> Tuple[BoundingBox, BoundingBox]:
         return bounds, bounds
 
     def setup(self, stage: str) -> None:
