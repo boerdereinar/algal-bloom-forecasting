@@ -2,7 +2,9 @@ from typing import Dict, Any, Optional, Callable, Sequence, Union
 
 from rasterio import CRS
 from rtree import Index
-from torchgeo.datasets import RasterDataset, BoundingBox
+from torchgeo.datasets import RasterDataset, BoundingBox, GeoDataset
+
+from edegruyl.datasets import CombinedDataset
 
 
 class TimeSeriesDataset(RasterDataset):
@@ -72,6 +74,9 @@ class TimeSeriesDataset(RasterDataset):
                 sample = self.transforms(sample)
 
             return sample
+
+    def __xor__(self, other: GeoDataset) -> CombinedDataset:
+        return CombinedDataset(self, other)
 
     def __getitem__(self, query: Union[BoundingBox, Sequence[BoundingBox]]) -> Dict[str, Any]:
         """Retrieve image/mask and metadata indexed by query.
