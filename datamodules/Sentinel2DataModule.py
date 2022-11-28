@@ -11,7 +11,8 @@ from edegruyl.datasets.Sentinel2Dataset import Sentinel2Dataset
 from edegruyl.transforms.ConvertToLabel import ConvertToLabel
 
 
-class ChlorophyllADataModule(LightningDataModule):
+class Sentinel2DataModule(LightningDataModule):
+    """Datamodule for classifying Sentinel2 data."""
     sentinel2: GeoDataset
     chlorophyll: GeoDataset
     dataset: GeoDataset

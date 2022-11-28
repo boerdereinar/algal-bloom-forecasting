@@ -1,0 +1,2 @@
+from edegruyl.datasets.ChlorophyllADataset import ChlorophyllADataset
+from edegruyl.datasets.Sentinel2Dataset import Sentinel2Dataset

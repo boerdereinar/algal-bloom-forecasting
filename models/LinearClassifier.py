@@ -9,6 +9,7 @@ from torch.optim.optimizer import Optimizer
 
 
 class LinearClassifier(LightningModule):
+    """A linear model."""
     def __init__(self, learning_rate: float = 0.01, **kwargs: Any):
         super(LinearClassifier, self).__init__()
         self.learning_rate = learning_rate

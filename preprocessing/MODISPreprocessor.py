@@ -5,6 +5,7 @@ from edegruyl.preprocessing.Preprocessor import Preprocessor
 
 
 class MODISPreprocessor(Preprocessor):
+    """Preprocessor for MODIS datasets."""
     filename_glob = "*.tif"
     description_regex = r"^\d{2}_\d{2}_(?P<date>\d{4}_\d{2}_\d{2})$"
     date_format = "%Y_%m_%d"
