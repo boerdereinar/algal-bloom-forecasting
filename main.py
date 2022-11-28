@@ -5,6 +5,8 @@ from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter, R
 from typing import List, Iterable, Tuple
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.loggers import WandbLogger
 
 import edegruyl.datamodules
 import edegruyl.models
@@ -48,10 +50,16 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
     datamodule_class.add_datamodule_specific_args(trainer_parser)
     trainer_args = trainer_parser.parse_args(unknown_args)
 
+    # Model
     model = model_class(**vars(trainer_args))
     datamodule = datamodule_class(**vars(trainer_args))
 
-    trainer: Trainer = Trainer.from_argparse_args(trainer_args)
+    # Logging
+    lr_monitor = LearningRateMonitor("step", True)
+    wandb_logger = WandbLogger(project="algal-bloom")
+
+    # Trainer
+    trainer: Trainer = Trainer.from_argparse_args(trainer_args, logger=wandb_logger, callbacks=[lr_monitor])
     trainer.fit(model, datamodule)
 
 
