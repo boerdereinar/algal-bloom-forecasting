@@ -7,7 +7,7 @@ from torchgeo.datasets import GeoDataset, stack_samples
 
 from edegruyl.datasets import TimeSeriesDataset
 from edegruyl.samplers import ForecastingGeoSampler
-from edegruyl.transforms.ConvertToLabel import ConvertToLabel
+from edegruyl.transforms import ConvertToLabel
 
 
 class TimeSeriesDataModule(LightningDataModule):
