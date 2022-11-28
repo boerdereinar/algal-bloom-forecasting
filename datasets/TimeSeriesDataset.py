@@ -9,6 +9,10 @@ from edegruyl.datasets import CombinedDataset
 
 class TimeSeriesDataset(RasterDataset):
     """Abstract base class for :class:`RasterDataset` stored as raster files."""
+
+    filename_regex = r"^.*_(?P<date>\d{8}).tif$"
+    date_format = "%Y%m%d"
+
     def __init__(
             self,
             root: str,

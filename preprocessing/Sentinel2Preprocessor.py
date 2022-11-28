@@ -8,7 +8,6 @@ class Sentinel2Preprocessor(Preprocessor):
     """Preprocessor for Sentinel2 datasets."""
     filename_glob = "*Sentinel2*.tif"
     description_regex = r"^.*_(?P<date>\d{8}T\d{6})_\d{8}T\d{6}.*$"
-    date_format = "%Y%m%dT%H%M%S"
 
     def __init__(self, source_dir: str, target_dir: str, **kwargs: Any):
         """Initialize the preprocessor for Sentinel2 data.

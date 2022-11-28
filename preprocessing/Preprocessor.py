@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 class Preprocessor(ABC):
     filename_glob = "*"
+    date_format = "%Y%m%d"
 
     @property
     @abstractmethod
@@ -21,12 +22,6 @@ class Preprocessor(ABC):
         Regular expression used to extract date from description.
         The expression must contain the named group `date`.
         """
-        ...
-
-    @property
-    @abstractmethod
-    def date_format(self):
-        """The format of the date captured by the description regex."""
         ...
 
     def __init__(self, source_dir: str, target_dir: str):

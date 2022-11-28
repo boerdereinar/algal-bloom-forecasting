@@ -8,7 +8,6 @@ class MODISPreprocessor(Preprocessor):
     """Preprocessor for MODIS datasets."""
     filename_glob = "*.tif"
     description_regex = r"^\d{2}_\d{2}_(?P<date>\d{4}_\d{2}_\d{2})$"
-    date_format = "%Y_%m_%d"
 
     def __init__(self, source_dir: str, target_dir: str, **kwargs: Any):
         """Initialize the preprocessor for MODIS data.

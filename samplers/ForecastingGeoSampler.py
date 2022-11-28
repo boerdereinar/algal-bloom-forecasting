@@ -46,7 +46,7 @@ class ForecastingGeoSampler(RandomGeoSampler):
         self.look_ahead = look_ahead
         self.res = res
 
-    def __iter__(self) -> Iterator[Sequence[Sequence[BoundingBox], Sequence[BoundingBox]]]:
+    def __iter__(self) -> Iterator[Sequence[Sequence[BoundingBox]]]:
         for item in super().__iter__():
             minx, maxx, miny, maxy, _, _ = item
             tn = [BoundingBox(minx, maxx, miny, maxy, t1.timestamp(), t2.timestamp())
