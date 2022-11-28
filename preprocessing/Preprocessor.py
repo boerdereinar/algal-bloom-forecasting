@@ -65,10 +65,10 @@ class Preprocessor(ABC):
                         date = dateutil.parser.parse(description_match.group("date"))
 
                         # Create target file
-                        file = os.path.join(
+                        target_file = os.path.join(
                             target_dir,
                             f"{file}_{i}_{date.strftime(self.date_format)}.tif")
-                        with rasterio.open(file, "w", **profile) as target:  # type: DatasetWriter
+                        with rasterio.open(target_file, "w", **profile) as target:  # type: DatasetWriter
                             target.write(src.read(i + 1), 1)
             except RasterioIOError:
                 continue
