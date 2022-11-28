@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional, Callable, Sequence, Union
 
 from rasterio import CRS
 from rtree import Index
-from torchgeo.datasets import RasterDataset, BoundingBox, GeoDataset
+from torchgeo.datasets import RasterDataset, BoundingBox, GeoDataset, concat_samples
 
 from edegruyl.datasets import CombinedDataset
 
@@ -53,10 +53,10 @@ class TimeSeriesDataset(RasterDataset):
                 self.time_index.delete(item.id, item.bounds)
                 v0, v1 = item.object
                 t0, t1 = item.bounds[:2]
-                if t0 < mint < t1:
-                    self.time_index.insert(0, [t0, mint, 0, 0], (v0, filepath))
-                if t0 < maxt < t1:
-                    self.time_index.insert(0, [maxt, t1, 0, 0], (v1, filepath))
+                if t0 <= mint <= t1:
+                    self.time_index.insert(2*i, [t0, mint, 0, 0], (v0, filepath))
+                if t0 <= maxt <= t1:
+                    self.time_index.insert(2*i + 1, [maxt, t1, 0, 0], (v1, filepath))
             i += 1
 
     def _getitem(self, query: BoundingBox) -> Dict[str, Any]:
@@ -79,9 +79,6 @@ class TimeSeriesDataset(RasterDataset):
 
             return sample
 
-    def __xor__(self, other: GeoDataset) -> CombinedDataset:
-        return CombinedDataset(self, other)
-
     def __getitem__(self, query: Union[BoundingBox, Sequence[BoundingBox]]) -> Dict[str, Any]:
         """Retrieve image/mask and metadata indexed by query.
 
@@ -98,6 +95,7 @@ class TimeSeriesDataset(RasterDataset):
             return self._getitem(query)
 
         samples = [self._getitem(q) for q in query]
+        return concat_samples(samples)
 
-        key = "image" if self.is_image else "mask"
-        return {key: samples[0], "crs": self.crs, "bbox": query}
+    def __xor__(self, other: GeoDataset) -> CombinedDataset:
+        return CombinedDataset(self, other)
