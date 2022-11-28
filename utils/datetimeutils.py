@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from random import random
 from typing import Tuple
 
 from edegruyl.samplers.constants import Resolution
@@ -33,7 +32,7 @@ def timedelta_from_resolution(res: Resolution) -> timedelta:
         The timedelta of one unit of the resolution.
 
     Raises:
-        ValueError: Raised if the given resolution is invalid.
+        ValueError: if the given resolution is invalid.
     """
     if res == Resolution.Days:
         return timedelta(days=1)
@@ -44,9 +43,21 @@ def timedelta_from_resolution(res: Resolution) -> timedelta:
 
 
 def disambiguate_datetime(t: datetime, res: Resolution) -> Tuple[datetime, datetime]:
+    """Gets the minimum and maximum date given the resolution.
+
+    Args:
+        t: The time to disambiguate.
+        res: The resolution.
+
+    Returns:
+        The minimum and maximum date given the date.
+
+    Raises:
+        ValueError: if the given resolution is invalid.
+    """
     if res == Resolution.Days:
-        return t, t.replace(hour=23, minute=59, second=59, microsecond=999999)
+        return adjust_resolution(t, res), t.replace(hour=23, minute=59, second=59, microsecond=999999)
     if res == Resolution.Hours:
-        return t, t.replace(minute=59, second=59, microsecond=999999)
+        return adjust_resolution(t, res), t.replace(minute=59, second=59, microsecond=999999)
 
     raise ValueError("The given resolution is invalid.")

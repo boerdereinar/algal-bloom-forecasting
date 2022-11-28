@@ -16,14 +16,34 @@ class ForecastingGeoSampler(RandomGeoSampler):
         size: Union[Tuple[float, float], float],
         length: int,
         look_back: int,
-        horizon: int,
+        look_ahead: int,
         roi: Optional[BoundingBox] = None,
         units: Units = Units.PIXELS,
         res: Resolution = Resolution.Days
     ) -> None:
+        """Initialize a new Sampler instance.
+
+        The ``size`` argument can either be:
+
+        * a single ``float`` - in which case the same value is used for the height and
+          width dimension
+        * a ``tuple`` of two floats - in which case, the first *float* is used for the
+          height dimension, and the second *float* for the width dimension
+
+        Args:
+            dataset: dataset to index from
+            size: dimensions of each :term:`patch`
+            length: number of random samples to draw per epoch
+            look_back: the number of resolution units to look backwards
+            look_ahead: the number of resolution units to look forwards
+            roi: region of interest to sample from (minx, maxx, miny, maxy, mint, maxt)
+                (defaults to the bounds of ``dataset.index``)
+            units: defines if ``size`` is in pixel or CRS units
+            res: defines the resolution of the dates
+        """
         super().__init__(dataset, size, length, roi, units)
         self.look_back = look_back
-        self.horizon = horizon
+        self.look_ahead = look_ahead
         self.res = res
 
     def __iter__(self) -> Iterator[Sequence[Sequence[BoundingBox], Sequence[BoundingBox]]]:
@@ -39,11 +59,11 @@ class ForecastingGeoSampler(RandomGeoSampler):
         maxt = adjust_resolution(datetime.fromtimestamp(maxt), self.res)
 
         dt = timedelta_from_resolution(self.res)
-        tdt = dt * (self.look_back + self.horizon)
+        tdt = dt * (self.look_back + self.look_ahead)
 
         if maxt - mint < tdt:
             raise IndexError("")
 
         t0 = adjust_resolution(mint + (maxt - mint - tdt) * random(), self.res)
-        tn = [disambiguate_datetime(t0 + dt * i, self.res) for i in range(self.look_back + self.horizon)]
+        tn = [disambiguate_datetime(t0 + dt * i, self.res) for i in range(self.look_back + self.look_ahead)]
         return tn
