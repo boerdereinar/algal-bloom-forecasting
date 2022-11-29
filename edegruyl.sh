@@ -10,6 +10,7 @@
 #SBATCH --mem=4G
 #SBATCH --output="out/slurm-%j.out"
 #SBATCH --error="out/slurm-%j.err"
+#SBATCH --signal=SIGUSR1@90
 
 # Activate the environment
 source /home/${USER}/.bashrc
