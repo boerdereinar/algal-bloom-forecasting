@@ -7,6 +7,7 @@ from torchgeo.samplers import RandomGeoSampler, Units
 
 from edegruyl.samplers.constants import Resolution
 from edegruyl.utils.datetimeutils import adjust_resolution, timedelta_from_resolution, disambiguate_datetime
+from edegruyl.utils.samplerutils import get_random_bounding_boxes
 
 
 class ForecastingGeoSampler(RandomGeoSampler):
@@ -48,22 +49,5 @@ class ForecastingGeoSampler(RandomGeoSampler):
 
     def __iter__(self) -> Iterator[Sequence[Sequence[BoundingBox]]]:
         for item in super().__iter__():
-            minx, maxx, miny, maxy, _, _ = item
-            tn = [BoundingBox(minx, maxx, miny, maxy, t1.timestamp(), t2.timestamp())
-                  for t1, t2 in self._get_random_timestamps()]
-            yield [tn[:self.look_back], tn[self.look_back:]]
-
-    def _get_random_timestamps(self) -> Sequence[Tuple[datetime, datetime]]:
-        mint, maxt = self.index.bounds[-2:]
-        mint = adjust_resolution(datetime.fromtimestamp(mint), self.res)
-        maxt = adjust_resolution(datetime.fromtimestamp(maxt), self.res)
-
-        dt = timedelta_from_resolution(self.res)
-        tdt = dt * (self.look_back + self.look_ahead)
-
-        if maxt - mint < tdt:
-            raise IndexError("")
-
-        t0 = adjust_resolution(mint + (maxt - mint - tdt) * random(), self.res)
-        tn = [disambiguate_datetime(t0 + dt * i, self.res) for i in range(self.look_back + self.look_ahead)]
-        return tn
+            bboxs = get_random_bounding_boxes(item, self.look_back, self.look_ahead, self.res)
+            yield [bboxs[:self.look_back], bboxs[self.look_back:]]
