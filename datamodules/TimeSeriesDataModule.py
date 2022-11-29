@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torchgeo.datasets import GeoDataset, stack_samples
 
 from edegruyl.datasets import TimeSeriesDataset
-from edegruyl.samplers import ForecastingGeoSampler
+from edegruyl.samplers import RandomForecastingGeoSampler
 from edegruyl.transforms import ConvertToLabel
 
 
@@ -15,7 +15,7 @@ class TimeSeriesDataModule(LightningDataModule):
     input_dataset: TimeSeriesDataset
     label_dataset: TimeSeriesDataset
     dataset: GeoDataset
-    train_sampler: ForecastingGeoSampler
+    train_sampler: RandomForecastingGeoSampler
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class TimeSeriesDataModule(LightningDataModule):
                                                ConvertToLabel())
         self.dataset = self.input_dataset ^ self.label_dataset
 
-        self.train_sampler = ForecastingGeoSampler(self.dataset, 256, 1000, 5, 5)
+        self.train_sampler = RandomForecastingGeoSampler(self.dataset, 256, 1000, 5, 5)
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(

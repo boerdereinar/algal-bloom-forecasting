@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from typing import Tuple, Any
+from typing import Tuple, Any, Dict
 
 from pytorch_lightning import LightningModule
 from torch import Tensor
@@ -28,8 +28,9 @@ class LinearClassifier(LightningModule):
     def configure_optimizers(self) -> Optimizer:
         return Adam(self.parameters(), lr=self.learning_rate)
 
-    def training_step(self, train_batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
-        x, y = train_batch
+    def training_step(self, train_batch: Dict[str, Any], batch_idx: int) -> Tensor:
+        x = train_batch["image"]
+        y = train_batch["label"]
         res = self.forward(x)
         loss = mse_loss(res, y)
         self.log("train_loss", loss)

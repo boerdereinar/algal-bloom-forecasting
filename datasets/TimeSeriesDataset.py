@@ -10,16 +10,16 @@ from edegruyl.datasets import CombinedDataset
 class TimeSeriesDataset(RasterDataset):
     """Abstract base class for :class:`RasterDataset` stored as raster files."""
 
-    filename_regex = r"^.*_(?P<date>\d{8}).tif$"
+    filename_regex = r"^.*_(?P<date>\d{8})\.tif$"
     date_format = "%Y%m%d"
 
     def __init__(
-            self,
-            root: str,
-            crs: Optional[CRS] = None,
-            res: Optional[float] = None,
-            transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
-            cache: bool = True,
+        self,
+        root: str,
+        crs: Optional[CRS] = None,
+        res: Optional[float] = None,
+        transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+        cache: bool = True,
     ) -> None:
         """Initialize a new Dataset instance.
 

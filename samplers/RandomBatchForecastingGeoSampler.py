@@ -1,20 +1,18 @@
-from datetime import datetime
-from random import random
-from typing import Iterator, Optional, Union, Tuple, Sequence
+from typing import Union, Tuple, Optional, Iterator, Sequence
 
 from torchgeo.datasets import GeoDataset, BoundingBox
-from torchgeo.samplers import RandomGeoSampler, Units
+from torchgeo.samplers import RandomBatchGeoSampler, Units
 
 from edegruyl.samplers.constants import Resolution
-from edegruyl.utils.datetimeutils import adjust_resolution, timedelta_from_resolution, disambiguate_datetime
 from edegruyl.utils.samplerutils import get_random_bounding_boxes
 
 
-class ForecastingGeoSampler(RandomGeoSampler):
+class RandomBatchForecastingGeoSampler(RandomBatchGeoSampler):
     def __init__(
         self,
         dataset: GeoDataset,
         size: Union[Tuple[float, float], float],
+        batch_size: int,
         length: int,
         look_back: int,
         look_ahead: int,
@@ -34,6 +32,7 @@ class ForecastingGeoSampler(RandomGeoSampler):
         Args:
             dataset: dataset to index from
             size: dimensions of each :term:`patch`
+            batch_size: number of samples per batch
             length: number of random samples to draw per epoch
             look_back: the number of resolution units to look backwards
             look_ahead: the number of resolution units to look forwards
@@ -42,12 +41,16 @@ class ForecastingGeoSampler(RandomGeoSampler):
             units: defines if ``size`` is in pixel or CRS units
             res: defines the resolution of the dates
         """
-        super().__init__(dataset, size, length, roi, units)
+        super().__init__(dataset, size, length, batch_size, roi, units)
         self.look_back = look_back
         self.look_ahead = look_ahead
         self.res = res
 
-    def __iter__(self) -> Iterator[Sequence[Sequence[BoundingBox]]]:
+    def __iter__(self) -> Iterator[Sequence[Sequence[Sequence[BoundingBox]]]]:
         for item in super().__iter__():
-            bboxs = get_random_bounding_boxes(item, self.look_back, self.look_ahead, self.res)
-            yield [bboxs[:self.look_back], bboxs[self.look_back:]]
+            batch = []
+            for bbox in item:
+                bounds = BoundingBox(*bbox[:4], *self.roi[-2:])
+                bboxs = get_random_bounding_boxes(bounds, self.look_back, self.look_ahead, self.res)
+                batch.append([bboxs[:self.look_back], bboxs[self.look_back:]])
+            yield batch
