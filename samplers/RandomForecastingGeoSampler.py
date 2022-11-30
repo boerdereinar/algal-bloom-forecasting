@@ -1,4 +1,4 @@
-from typing import Iterator, Optional, Union, Tuple, Sequence
+from typing import Iterator, Optional, Union, Tuple, Sequence, Any
 
 from torchgeo.datasets import GeoDataset, BoundingBox
 from torchgeo.samplers import RandomGeoSampler, Units
@@ -9,15 +9,16 @@ from edegruyl.utils.samplerutils import get_random_bounding_boxes
 
 class RandomForecastingGeoSampler(RandomGeoSampler):
     def __init__(
-        self,
-        dataset: GeoDataset,
-        size: Union[Tuple[float, float], float],
-        length: int,
-        look_back: int,
-        look_ahead: int,
-        roi: Optional[BoundingBox] = None,
-        units: Units = Units.PIXELS,
-        res: Resolution = Resolution.Days
+            self,
+            dataset: GeoDataset,
+            patch_size: Union[Tuple[float, float], float],
+            length: int,
+            look_back: int,
+            look_ahead: int,
+            roi: Optional[BoundingBox] = None,
+            units: Units = Units.PIXELS,
+            res: Resolution = Resolution.Days,
+            **kwargs: Any
     ) -> None:
         """Initialize a new Sampler instance.
 
@@ -30,7 +31,7 @@ class RandomForecastingGeoSampler(RandomGeoSampler):
 
         Args:
             dataset: dataset to index from
-            size: dimensions of each :term:`patch`
+            patch_size: dimensions of each :term:`patch`
             length: number of random samples to draw per epoch
             look_back: the number of resolution units to look backwards
             look_ahead: the number of resolution units to look forwards
@@ -39,7 +40,7 @@ class RandomForecastingGeoSampler(RandomGeoSampler):
             units: defines if ``size`` is in pixel or CRS units
             res: defines the resolution of the dates
         """
-        super().__init__(dataset, size, length, roi, units)
+        super().__init__(dataset, patch_size, length, roi, units)
         self.look_back = look_back
         self.look_ahead = look_ahead
         self.res = res

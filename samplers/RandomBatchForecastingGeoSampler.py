@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Optional, Iterator, Sequence
+from typing import Union, Tuple, Optional, Iterator, Sequence, Any
 
 from torchgeo.datasets import GeoDataset, BoundingBox
 from torchgeo.samplers import RandomBatchGeoSampler, Units
@@ -9,20 +9,21 @@ from edegruyl.utils.samplerutils import get_random_bounding_boxes
 
 class RandomBatchForecastingGeoSampler(RandomBatchGeoSampler):
     def __init__(
-        self,
-        dataset: GeoDataset,
-        size: Union[Tuple[float, float], float],
-        batch_size: int,
-        length: int,
-        look_back: int,
-        look_ahead: int,
-        roi: Optional[BoundingBox] = None,
-        units: Units = Units.PIXELS,
-        res: Resolution = Resolution.Days
+            self,
+            dataset: GeoDataset,
+            patch_size: Union[Tuple[float, float], float],
+            batch_size: int,
+            length: int,
+            look_back: int,
+            look_ahead: int,
+            roi: Optional[BoundingBox] = None,
+            units: Units = Units.PIXELS,
+            res: Resolution = Resolution.Days,
+            **kwargs: Any
     ) -> None:
         """Initialize a new Sampler instance.
 
-        The ``size`` argument can either be:
+        The ``patch_size`` argument can either be:
 
         * a single ``float`` - in which case the same value is used for the height and
           width dimension
@@ -31,7 +32,7 @@ class RandomBatchForecastingGeoSampler(RandomBatchGeoSampler):
 
         Args:
             dataset: dataset to index from
-            size: dimensions of each :term:`patch`
+            patch_size: dimensions of each :term:`patch`
             batch_size: number of samples per batch
             length: number of random samples to draw per epoch
             look_back: the number of resolution units to look backwards
@@ -41,7 +42,7 @@ class RandomBatchForecastingGeoSampler(RandomBatchGeoSampler):
             units: defines if ``size`` is in pixel or CRS units
             res: defines the resolution of the dates
         """
-        super().__init__(dataset, size, length, batch_size, roi, units)
+        super().__init__(dataset, patch_size, batch_size, length, roi, units)
         self.look_back = look_back
         self.look_ahead = look_ahead
         self.res = res

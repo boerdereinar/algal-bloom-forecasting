@@ -56,7 +56,7 @@ class TimeSeriesDataset(RasterDataset):
                 if t0 <= mint <= t1:
                     self.time_index.insert(2*i, [t0, mint, 0, 0], (v0, filepath))
                 if t0 <= maxt <= t1:
-                    self.time_index.insert(2*i + 1, [maxt, t1, 0, 0], (v1, filepath))
+                    self.time_index.insert(2*i + 1, [maxt, t1, 0, 0], (filepath, v1))
             i += 1
 
     def _getitem(self, query: BoundingBox) -> Dict[str, Any]:

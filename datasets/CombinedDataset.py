@@ -1,14 +1,14 @@
 from typing import Callable, Any, Dict, Sequence, Union
 
-from torchgeo.datasets import IntersectionDataset, GeoDataset, concat_samples, BoundingBox
+from torchgeo.datasets import UnionDataset, GeoDataset, BoundingBox, merge_samples
 
 
-class CombinedDataset(IntersectionDataset):
+class CombinedDataset(UnionDataset):
     def __init__(
         self,
         dataset1: GeoDataset,
         dataset2: GeoDataset,
-        collate_fn: Callable[[Sequence[Dict[str, Any]]], Dict[str, Any]] = concat_samples
+        collate_fn: Callable[[Sequence[Dict[str, Any]]], Dict[str, Any]] = merge_samples
     ) -> None:
         super().__init__(dataset1, dataset2, collate_fn)
 

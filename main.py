@@ -56,10 +56,12 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
 
     # Logging
     lr_monitor = LearningRateMonitor("step", True)
-    wandb_logger = WandbLogger(project="algal-bloom")
+    # wandb_logger = WandbLogger(project="algal-bloom")
 
     # Trainer
-    trainer: Trainer = Trainer.from_argparse_args(trainer_args, logger=wandb_logger, callbacks=[lr_monitor])
+    trainer: Trainer = Trainer.from_argparse_args(trainer_args, callbacks=[lr_monitor])
+
+    # trainer.tune(model, datamodule)
     trainer.fit(model, datamodule)
 
 
