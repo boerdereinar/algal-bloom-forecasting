@@ -1,3 +1,3 @@
+from edegruyl.preprocessing.Preprocessor import Preprocessor
 from edegruyl.preprocessing.BiologicalPreprocessor import BiologicalPreprocessor
-from edegruyl.preprocessing.MODISPreprocessor import MODISPreprocessor
-from edegruyl.preprocessing.Sentinel2Preprocessor import Sentinel2Preprocessor
+from edegruyl.preprocessing.InterpolatePreprocessor import InterpolatePreprocessor

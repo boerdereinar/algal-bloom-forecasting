@@ -10,15 +10,17 @@ from joblib import Parallel, delayed
 from rasterio.io import DatasetReader, DatasetWriter
 from tqdm import tqdm
 
+from edegruyl.preprocessing import Preprocessor
 
-class BiologicalPreprocessor:
+
+class BiologicalPreprocessor(Preprocessor):
     """Preprocessor for the biological modalities."""
 
     path = "02_DATA/01_BIOPHYSICAL PARAMETERS/BIOLOGICAL PROPERTIES"
-    filename_regex = r"^.*[\\/](?P<modality>.+)[\\/]{1,2}" \
-                     r"(?P<reservoir>.+)[\\/]{1,2}" \
-                     r".*_(?P<season>[A-Za-z]+_\d{4})\.tif$"
-    description_regex = r"^.*_(?P<date>\d{8}T\d{6})_\d{8}T\d{6}.*$"
+    filename_regex = re.compile(r"^.*(?:\\\\?|/)(?P<modality>.+)(?:\\\\?|/)"
+                                r"(?P<reservoir>.+)(?:\\\\?|/)"
+                                r".*_(?P<season>[A-Za-z]+_\d{4})\.tif$")
+    description_regex = re.compile(r"^.*_(?P<date>\d{8}T\d{6})_\d{8}T\d{6}.*$")
 
     def __init__(self, source_dir: str, target_dir: str, num_workers: int = None):
         """
@@ -29,16 +31,12 @@ class BiologicalPreprocessor:
             target_dir: The path to the target directory.
             num_workers: The number of workers to use to process the data with.
         """
-        self.source_dir = os.path.join(source_dir, self.path, "**/*.tif")
-        self.target_dir = target_dir
+        super().__init__(source_dir, target_dir)
         self.num_workers = num_workers
 
     @staticmethod
     def add_preprocessor_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
-        parent_parser.add_argument("-s", "--source-dir", type=str, required=True,
-                                   help="The path to the source directory.")
-        parent_parser.add_argument("-t", "--target-dir", type=str, required=True,
-                                   help="The parth to the target directory.")
+        super(BiologicalPreprocessor, BiologicalPreprocessor).add_preprocessor_specific_args(parent_parser)
         parent_parser.add_argument("--num-workers", type=int, default=None,
                                    help="The number of workers to use to process the data with.")
         return parent_parser
@@ -47,13 +45,11 @@ class BiologicalPreprocessor:
         """
         Preprocess the biological properties into individual tif files with each modality as a band in the file.
         """
-        filename_regex = re.compile(self.filename_regex)
-
         files = defaultdict(list)
 
         # Group all the files by their reservoir and season.
         for file in glob.glob(self.source_dir, recursive=True):
-            match = filename_regex.match(file)
+            match = self.filename_regex.match(file)
             if match:
                 files[tuple(match.groupdict().values())[1:]].append((match.group("modality"), file))
 
@@ -68,8 +64,6 @@ class BiologicalPreprocessor:
             reservoir: The reservoir.
             group: The grouped files as a list of tuples (modality, filename).
         """
-        description_regex = re.compile(self.description_regex)
-
         # Open all files
         datasets: List[DatasetReader] = [rasterio.open(file) for _, file in group]
         profile = datasets[0].profile
@@ -82,7 +76,7 @@ class BiologicalPreprocessor:
         # Loop through all bands
         for i in range(datasets[0].count):
             # Get the date from the band description
-            date = description_regex.match(datasets[0].descriptions[i]).group("date")
+            date = self.description_regex.match(datasets[0].descriptions[i]).group("date")
 
             # Start writing to the file
             target_file = os.path.join(target_dir, f"{reservoir.lower()}_{date}_biological.tif")

@@ -23,7 +23,8 @@ def preprocess(args: Namespace, unknown_args: List[str]) -> None:
     name = f"{args.preprocessor}Preprocessor"
     preprocessor_class = getattr(edegruyl.preprocessing, name)
 
-    preprocessor_parser = ArgumentParser(prog=f"main.py preprocess {args.preprocessor}")
+    preprocessor_parser = ArgumentParser(prog=f"main.py preprocess {args.preprocessor}",
+                                         formatter_class=RawTextHelpFormatter)
     preprocessor_class.add_preprocessor_specific_args(preprocessor_parser)
     preprocessor_args = preprocessor_parser.parse_args(unknown_args)
 
