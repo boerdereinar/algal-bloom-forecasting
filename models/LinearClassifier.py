@@ -46,9 +46,17 @@ class LinearClassifier(LightningModule):
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x = torch.nan_to_num(train_batch["images"])
         y = train_batch["ground_truth"]
-        res = self.forward(x)
-
-        loss = mse_loss(res, y)
+        y_hat = self.forward(x)
+        loss = mse_loss(y_hat, y)
 
         self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
+        x = torch.nan_to_num(train_batch["images"])
+        y = train_batch["ground_truth"]
+        y_hat = self.forward(x)
+        loss = mse_loss(y_hat, y)
+
+        self.log("val_loss", loss)
         return loss
