@@ -7,6 +7,8 @@ from torch import Tensor, nn
 from torch.optim.adam import Adam
 from torch.optim.optimizer import Optimizer
 
+from edegruyl.models.functional import mse_loss
+
 
 class LinearClassifier(LightningModule):
     """A linear model."""
@@ -46,9 +48,7 @@ class LinearClassifier(LightningModule):
         y = train_batch["ground_truth"]
         res = self.forward(x)
 
-        mask = ~torch.isnan(y)
-        out = (res[mask] - y[mask]) ** 2
-        loss = out.mean()
+        loss = mse_loss(res, y)
 
         self.log("train_loss", loss)
         return loss
