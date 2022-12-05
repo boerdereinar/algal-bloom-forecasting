@@ -52,7 +52,7 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
     trainer_args = trainer_parser.parse_args(unknown_args)
 
     # Model
-    model = model_class(**vars(trainer_args))
+    model = model_class(**vars(trainer_args), num_bands=3)
     datamodule = datamodule_class(**vars(trainer_args))
 
     # Logging

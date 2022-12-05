@@ -101,7 +101,7 @@ class InterpolatePreprocessor(Preprocessor):
                             f"{match['pre']}{t_cur.strftime(self.date_format)}{match['post']}"
                         )
                         # Save file in a new worker thread
-                        executor.submit(self._write_file, target_file, profile, data_cur)
+                        executor.submit(self._write_file, target_file, profile, data_cur, descriptions)
                         pbar.update(1)
                     else:
                         # Process all missing samples including the last sample

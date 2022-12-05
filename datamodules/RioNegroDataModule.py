@@ -34,7 +34,7 @@ class RioNegroDataModule(LightningDataModule):
         self.root = root
         self.reservoir = reservoir
 
-        self.save_hyperparameters(ignore=["root", "reservoir", "kwargs"])
+        self.save_hyperparameters(ignore=["root", "reservoir"] + list(kwargs))
 
     @staticmethod
     def add_datamodule_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -61,15 +61,35 @@ class RioNegroDataModule(LightningDataModule):
 
         # Training sampler
         train_roi = BoundingBox(*self.dataset.roi[:5], maxt.timestamp())
-        self.train_sampler = RandomBatchGeoSampler(self.dataset.biological_unprocessed, **self.hparams, roi=train_roi)
+        self.train_sampler = RandomBatchGeoSampler(
+            self.dataset.biological_unprocessed,
+            size=self.hparams.size,
+            batch_size=self.hparams.batch_size,
+            length=self.hparams.length,
+            roi=train_roi
+        )
 
         # Validation sampler
         val_roi = BoundingBox(*self.dataset.roi[:4], mint.timestamp(), self.dataset.roi.maxt)
-        size = tuple(self.dataset.roi[3, 1] - self.dataset.roi[2, 0])
-        self.val_sampler = GridGeoSampler(self.dataset.biological_unprocessed, size, 1, val_roi, Units.CRS)
+        minx, maxx, miny, maxy = self.dataset.roi[:4]
+        self.val_sampler = GridGeoSampler(
+            self.dataset.biological_unprocessed,
+            size=(maxy - miny, maxx - minx),
+            stride=1,
+            roi=val_roi,
+            units=Units.CRS
+        )
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.dataset, batch_sampler=self.train_sampler, num_workers=self.hparams.num_workers)
+        return DataLoader(
+            self.dataset,
+            batch_sampler=self.train_sampler,
+            num_workers=self.hparams.num_workers
+        )
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.dataset, sampler=self.val_sampler, num_workers=self.hparams.num_workers)
+        return DataLoader(
+            self.dataset,
+            sampler=self.val_sampler,
+            num_workers=self.hparams.num_workers
+        )

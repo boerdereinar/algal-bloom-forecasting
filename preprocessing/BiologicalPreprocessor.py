@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from typing import List, Tuple
 
+import numpy as np
 import rasterio
 from joblib import Parallel, delayed
 from rasterio.io import DatasetReader, DatasetWriter
@@ -54,7 +55,9 @@ class BiologicalPreprocessor(Preprocessor):
                 files[tuple(match.groupdict().values())[1:]].append((match.group("modality"), file))
 
         # Process all the grouped files
-        Parallel(self)(delayed(self._process_data)(reservoir, group) for (reservoir, _), group in tqdm(files.items()))
+        Parallel(self.num_workers)(
+            delayed(self._process_data)(reservoir, group) for (reservoir, _), group in tqdm(files.items())
+        )
 
     def _process_data(self, reservoir: str, group: List[Tuple[str, str]]):
         """
@@ -68,6 +71,7 @@ class BiologicalPreprocessor(Preprocessor):
         datasets: List[DatasetReader] = [rasterio.open(file) for _, file in group]
         profile = datasets[0].profile
         profile["count"] = len(datasets)
+        profile["dtype"] = np.float32
 
         # Create the target directory if necessary
         target_dir = os.path.join(self.target_dir, "biological", reservoir.lower())
@@ -83,7 +87,7 @@ class BiologicalPreprocessor(Preprocessor):
             with rasterio.open(target_file, "w", **profile) as writer:  # type: DatasetWriter
                 for j, ds in enumerate(datasets):
                     # Read the data in the band
-                    data = ds.read(i + 1)
+                    data = ds.read(i + 1).astype(np.float32)
                     # Write the data to the new file
                     writer.write(data, j + 1)
                     # Write the modality

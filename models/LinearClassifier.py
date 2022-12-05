@@ -12,27 +12,26 @@ class LinearClassifier(LightningModule):
     """A linear model."""
     def __init__(
             self,
-            input_channels: int,
-            input_size: int,
+            window_size: int,
+            num_bands: int,
+            size: int,
             learning_rate: float = 0.01,
             **kwargs: Any
     ) -> None:
         super(LinearClassifier, self).__init__()
         self.save_hyperparameters(ignore=list(kwargs))
 
-        n = input_channels * input_size * input_size
+        n_in = window_size * num_bands * size * size
+        n_out = size * size
         self.fc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(n, n),
-            nn.Unflatten(1, (input_channels, input_size, input_size))
+            nn.Linear(n_in, n_out),
+            nn.Unflatten(1, (size, size))
         )
 
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("Model")
-        parser.add_argument("--input-channels", type=int, required=True,
-                            help="The number of input channels of the model.")
-        parser.add_argument("--input-size", type=int, help="The size of the input of the model.", required=True)
         parser.add_argument("-lr", "--learning-rate", type=float, help="The learning rate of the model.", default=0.01)
         return parent_parser
 
@@ -42,9 +41,9 @@ class LinearClassifier(LightningModule):
     def configure_optimizers(self) -> Optimizer:
         return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
-    def training_step(self, train_batch: Dict[str, Any], batch_idx: int) -> Tensor:
-        x = torch.nan_to_num(train_batch["image"])
-        y = train_batch["label"]
+    def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
+        x = torch.nan_to_num(train_batch["images"])
+        y = train_batch["ground_truth"]
         res = self.forward(x)
 
         mask = ~torch.isnan(y)

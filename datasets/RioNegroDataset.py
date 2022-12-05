@@ -1,4 +1,6 @@
 import os.path
+import threading
+import time
 from datetime import timedelta, datetime
 from typing import Dict, Any
 
@@ -10,21 +12,16 @@ from edegruyl.datasets import BiologicalDataset
 
 
 class RioNegroDataset(GeoDataset):
+    biological_unprocessed: BiologicalDataset
+    biological_processed: BiologicalDataset
+
     def __init__(self, root: str, reservoir: str, window_size: int, prediction_horizon: int, **kwargs: Any):
         super().__init__()
         self.window_size = window_size
         self.prediction_horizon = prediction_horizon
 
-        print("Loading datasets...")
-        pbar = tqdm(total=2)
-
-        pbar.set_description("Unprocessed biological dataset")
-        self.biological_unprocessed = BiologicalDataset(os.path.join(root, "biological", reservoir))
-        pbar.update(1)
-
-        pbar.set_description("Processed biological dataset")
-        self.biological_processed = BiologicalDataset(os.path.join(root, "biological_processed", reservoir))
-        pbar.update(1)
+        # Load the datasets
+        self.load_datasets(root, reservoir)
 
         # Update index
         self.index = self.biological_unprocessed.index
@@ -36,6 +33,31 @@ class RioNegroDataset(GeoDataset):
         dt = timedelta(days=window_size + prediction_horizon).total_seconds()
         roi = self.biological_unprocessed.bounds & self.biological_processed.bounds
         self.roi = BoundingBox(*roi[:4], roi.mint + dt, roi.maxt)
+
+    def load_datasets(self, root: str, reservoir: str):
+        print("Loading datasets...")
+
+        loaders = [
+            self.load_biological_unprocessed,
+            self.load_biological_processed
+        ]
+
+        # Load the datasets whilst updating the timer of the progress bar
+        for loader in (pbar := tqdm(loaders)):
+            x = threading.Thread(target=loader, args=[pbar, root, reservoir])
+            x.start()
+            while x.is_alive():
+                time.sleep(0.1)
+                pbar.refresh()
+            x.join()
+
+    def load_biological_unprocessed(self, pbar: tqdm, root: str, reservoir: str):
+        pbar.set_description("Unprocessed biological dataset")
+        self.biological_unprocessed = BiologicalDataset(os.path.join(root, "biological", reservoir))
+
+    def load_biological_processed(self, pbar: tqdm, root: str, reservoir: str):
+        pbar.set_description("Processed biological dataset")
+        self.biological_processed = BiologicalDataset(os.path.join(root, "biological_processed", reservoir))
 
     def __getitem__(self, query: BoundingBox) -> Dict[str, Any]:
         ground_truth = self.biological_unprocessed[query]["image"][0]
