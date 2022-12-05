@@ -1,2 +1,4 @@
+from edegruyl.datasets.BiologicalDataset import BiologicalDataset
 from edegruyl.datasets.CombinedDataset import CombinedDataset
+from edegruyl.datasets.RioNegroDataset import RioNegroDataset
 from edegruyl.datasets.TimeSeriesDataset import TimeSeriesDataset
