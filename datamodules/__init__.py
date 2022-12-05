@@ -1,1 +1,1 @@
-from edegruyl.datamodules.TimeSeriesDataModule import TimeSeriesDataModule
+from edegruyl.datamodules.RioNegroDataModule import RioNegroDataModule
