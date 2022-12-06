@@ -11,6 +11,18 @@ from pytorch_lightning.loggers import WandbLogger
 import edegruyl.datamodules
 import edegruyl.models
 import edegruyl.preprocessing
+from edegruyl.analysis import Analyser
+
+
+def analyse(args: Namespace, unknown_args: List[str]) -> None:
+    """Runs the analyzer.
+
+    Args:
+        args: The arguments from the parent parser.
+        unknown_args: The remaining arguments.
+    """
+    analyser = Analyser(args.root, args.reservoir)
+    analyser.analyse()
 
 
 def preprocess(args: Namespace, unknown_args: List[str]) -> None:
@@ -74,6 +86,11 @@ def main() -> None:
 
     parser = ArgumentParser()
     subparsers = parser.add_subparsers()
+
+    # Analyse
+    analyse_parser = subparsers.add_parser("analyse", help="Analyze the data.")
+    Analyser.add_analyser_specific_args(analyse_parser)
+    analyse_parser.set_defaults(func=analyse)
 
     # Preprocess
     preprocessor_help = "The type of the preprocessor to use.\nAvailable preprocessors:\n" +\
