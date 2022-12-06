@@ -11,7 +11,22 @@ from edegruyl.datasets import RioNegroDataset
 
 
 class RioNegroDataModule(LightningDataModule):
-    """Data module for Rio Negro data."""
+    """A PyTorch `DataModule` for loading and preparing data from the Rio Negro dataset.
+
+    This class extends the `DataModule` class from the PyTorch Lightning framework
+    and provides methods for loading and preparing data from the Rio Negro dataset
+    for use in training and evaluating machine learning models. It also provides
+    methods for specifying and parsing command-line arguments that are specific to
+    this dataset.
+
+    Attributes:
+        dataset: An instance of the `RioNegroDataset` class, representing the
+            dataset that this data module loads and prepares data from.
+        train_sampler: An instance of the `RandomBatchGeoSampler` class,
+            representing the sampler that is used to sample data for training.
+        val_sampler: An instance of the `GridGeoSampler` class, representing
+            the sampler that is used to sample data for validation.
+    """
     dataset: RioNegroDataset
     train_sampler: BatchGeoSampler
     val_sampler: GeoSampler
@@ -29,6 +44,27 @@ class RioNegroDataModule(LightningDataModule):
             num_workers: int = 0,
             **kwargs: Any
     ) -> None:
+        """Constructs a new `RioNegroDataModule` instance.
+
+        Args:
+            root: The root directory where the data is stored.
+            reservoir: The specific reservoir of data to load.
+            window_size: The window size to use when sampling data.
+            prediction_horizon: The prediction horizon to use when sampling data.
+            train_test_split: The ratio between the number of training and test
+                samples. The default value is 0.8, meaning that 80% of the data
+                will be used for training and 20% for testing.
+            size: The size of the patches of data that will be sampled. The
+                default value is 256.
+            batch_size: The size of the batches that will be sampled. The
+                default value is 6.
+            length: The number of samples that will be generated per epoch.
+                The default value is 1000.
+            num_workers: The number of workers to use for parallel data loading.
+                The default value is 0.
+            kwargs: Additional keyword arguments. These will be saved and
+                accessible via the `hparams` attribute of this data module.
+        """
         super().__init__()
 
         self.root = root
@@ -38,6 +74,21 @@ class RioNegroDataModule(LightningDataModule):
 
     @staticmethod
     def add_datamodule_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        """Adds command-line arguments specific to this data module to an
+        `ArgumentParser` object.
+
+        This method adds several command-line arguments that are specific to the
+        Rio Negro dataset and the `RioNegroDataModule` class. These arguments
+        can be used to specify the root directory, the reservoir, the window size,
+        the prediction horizon, and other hyperparameters.
+
+        Args:
+            parent_parser: The `ArgumentParser` object to add the arguments to.
+
+        Returns:
+            The same `ArgumentParser` object that was passed in, with the
+            additional arguments added to it.
+        """
         parser = parent_parser.add_argument_group("Data")
         parser.add_argument("--root", type=str, help="The root directory.", required=True)
         parser.add_argument("--reservoir", type=str, help="The reservoir to train for.", required=True)
@@ -52,6 +103,19 @@ class RioNegroDataModule(LightningDataModule):
         return parent_parser
 
     def setup(self, stage: str) -> None:
+        """Sets up the data module, preparing it for use.
+
+        This method is called by the PyTorch Lightning framework to set up the
+        data module and prepare it for use. It creates an instance of the
+        `RioNegroDataset` class, which represents the dataset that this data module
+        will load and prepare data from. It also creates instances of the
+        `RandomBatchGeoSampler` and `GridGeoSampler` classes, which are used to
+        sample data for training and validation, respectively.
+
+        Args:
+            stage: The stage of the training process that this data module is being
+                set up for. This can be one of "fit", "test", or "predict".
+        """
         self.dataset = RioNegroDataset(self.root, self.reservoir, **self.hparams)
 
         # Train-test split
@@ -81,6 +145,16 @@ class RioNegroDataModule(LightningDataModule):
         )
 
     def train_dataloader(self) -> DataLoader:
+        """Returns a PyTorch `DataLoader` instance for the training set.
+
+        This method returns a PyTorch `DataLoader` instance that can be used to
+        load data for training. It creates the `DataLoader` instance by calling
+        `RioNegroDataset.get_dataloader` and passing in the `RandomBatchGeoSampler`
+        instance that was created in the `setup` method.
+
+        Returns:
+            A PyTorch `DataLoader` instance for the training set.
+        """
         return DataLoader(
             self.dataset,
             batch_sampler=self.train_sampler,
@@ -88,6 +162,16 @@ class RioNegroDataModule(LightningDataModule):
         )
 
     def val_dataloader(self) -> DataLoader:
+        """Returns a PyTorch `DataLoader` instance for the validation set.
+
+        This method returns a PyTorch `DataLoader` instance that can be used to
+        load data for validation. It creates the `DataLoader` instance by calling
+        `RioNegroDataset.get_dataloader` and passing in the `GridGeoSampler`
+        instance that was created in the `setup` method.
+
+        Returns:
+            A PyTorch `DataLoader` instance for the validation set.
+        """
         return DataLoader(
             self.dataset,
             sampler=self.val_sampler,
