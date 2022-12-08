@@ -20,7 +20,7 @@ class Normalize:
         """
         self.max = max
 
-    def __call_(self, x: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, x: Dict[str, Any]) -> Dict[str, Any]:
         """
         Normalizes the tensor values in a dictionary.
 

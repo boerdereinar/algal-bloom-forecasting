@@ -6,7 +6,6 @@ from typing import Dict, Any
 
 import torch
 from torchgeo.datasets import GeoDataset, BoundingBox
-from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from edegruyl.datasets import BiologicalDataset
@@ -58,14 +57,14 @@ class RioNegroDataset(GeoDataset):
         pbar.set_description("Unprocessed biological dataset")
         self.biological_unprocessed = BiologicalDataset(
             os.path.join(root, "biological", reservoir),
-            transforms=Compose([self.normalize])
+            transforms=self.normalize
         )
 
     def load_biological_processed(self, pbar: tqdm, root: str, reservoir: str):
         pbar.set_description("Processed biological dataset")
         self.biological_processed = BiologicalDataset(
             os.path.join(root, "biological_processed", reservoir),
-            transforms=Compose([self.normalize])
+            transforms=self.normalize
         )
 
     def __getitem__(self, query: BoundingBox) -> Dict[str, Any]:

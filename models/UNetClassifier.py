@@ -1,25 +1,17 @@
+from argparse import ArgumentParser
 from typing import Any, Dict
 
 import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor
+from torch.optim import Adam, Optimizer
 
 from edegruyl.models import UNet
 from edegruyl.models.functional import mse_loss
 
 
 class UNetClassifier(LightningModule):
-    """A UNet-based classifier for image segmentation.
-
-    This class extends the PyTorch Lightning `LightningModule` class to provide useful abstractions
-    for training models. It uses a UNet model to perform image segmentation on input images.
-
-    Args:
-        window_size (int): The size of the window that the classifier will use to look at the input data.
-        num_bands (int): The number of bands (i.e. channels) in the input data.
-        size (int): The size of the image that the classifier will be trained on.
-        learning_rate (float): The learning rate to use for training.
-    """
+    """A UNet-based classifier for image segmentation."""
     def __init__(
             self,
             window_size: int,
@@ -28,11 +20,27 @@ class UNetClassifier(LightningModule):
             learning_rate: float = 0.01,
             **kwargs: Any
     ) -> None:
+        """
+        Initialize the UNet-classifier.
+
+        Args:
+            window_size (int): The size of the window that the classifier will use to look at the input data.
+            num_bands (int): The number of bands (i.e. channels) in the input data.
+            size (int): The size of the image that the classifier will be trained on.
+            learning_rate (float): The learning rate to use for training.
+            **kwargs:
+        """
         super().__init__()
         self.save_hyperparameters(ignore=list(kwargs))
 
         in_channels = window_size * num_bands
         self.model = UNet(in_channels, 1)
+
+    @staticmethod
+    def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
+        parser = parent_parser.add_argument_group("Model")
+        parser.add_argument("-lr", "--learning-rate", type=float, help="The learning rate of the model.", default=0.01)
+        return parent_parser
 
     def forward(self, x: Tensor) -> Tensor:
         """Performs the forward pass of the UNet model.
@@ -45,6 +53,9 @@ class UNetClassifier(LightningModule):
         """
         x = torch.flatten(x, 1, 2)
         return self.model(x)
+
+    def configure_optimizers(self) -> Optimizer:
+        return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
     def _compute_loss(self, batch: Dict[str, Tensor]) -> Tensor:
         """Computes the loss for a given batch of data.

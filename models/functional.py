@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torch import Tensor
 
@@ -21,5 +20,5 @@ def mse_loss(preds: Tensor, target: Tensor, squared: bool = True) -> torch.Tenso
     diff = preds - target
     mean_squared_error = diff.square().nanmean()
     res = mean_squared_error if squared else mean_squared_error.sqrt()
-    return res if not np.isnan(res) else 0
+    return torch.zeros_like(res, requires_grad=preds.requires_grad) if torch.isnan(res) else res
 
