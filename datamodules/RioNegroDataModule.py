@@ -24,12 +24,12 @@ class RioNegroDataModule(LightningDataModule):
             dataset that this data module loads and prepares data from.
         train_sampler: An instance of the `RandomBatchGeoSampler` class,
             representing the sampler that is used to sample data for training.
-        val_sampler: An instance of the `GridGeoSampler` class, representing
-            the sampler that is used to sample data for validation.
+        test_sampler: An instance of the `GridGeoSampler` class, representing
+            the sampler that is used to sample data for testing.
     """
     dataset: RioNegroDataset
     train_sampler: BatchGeoSampler
-    val_sampler: GeoSampler
+    test_sampler: GeoSampler
 
     def __init__(
             self,
@@ -110,7 +110,7 @@ class RioNegroDataModule(LightningDataModule):
         `RioNegroDataset` class, which represents the dataset that this data module
         will load and prepare data from. It also creates instances of the
         `RandomBatchGeoSampler` and `GridGeoSampler` classes, which are used to
-        sample data for training and validation, respectively.
+        sample data for training and testing, respectively.
 
         Args:
             stage: The stage of the training process that this data module is being
@@ -133,14 +133,14 @@ class RioNegroDataModule(LightningDataModule):
             roi=train_roi
         )
 
-        # Validation sampler
-        val_roi = BoundingBox(*self.dataset.roi[:4], mint.timestamp(), self.dataset.roi.maxt)
+        # Test sampler
+        test_roi = BoundingBox(*self.dataset.roi[:4], mint.timestamp(), self.dataset.roi.maxt)
         minx, maxx, miny, maxy = self.dataset.roi[:4]
-        self.val_sampler = GridGeoSampler(
+        self.test_sampler = GridGeoSampler(
             self.dataset.biological_unprocessed,
             size=(maxy - miny, maxx - minx),
             stride=1,
-            roi=val_roi,
+            roi=test_roi,
             units=Units.CRS
         )
 
@@ -161,19 +161,19 @@ class RioNegroDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers
         )
 
-    def val_dataloader(self) -> DataLoader:
-        """Returns a PyTorch `DataLoader` instance for the validation set.
+    def test_dataloader(self) -> DataLoader:
+        """Returns a PyTorch `DataLoader` instance for the test set.
 
         This method returns a PyTorch `DataLoader` instance that can be used to
-        load data for validation. It creates the `DataLoader` instance by calling
+        load data for test. It creates the `DataLoader` instance by calling
         `RioNegroDataset.get_dataloader` and passing in the `GridGeoSampler`
         instance that was created in the `setup` method.
 
         Returns:
-            A PyTorch `DataLoader` instance for the validation set.
+            A PyTorch `DataLoader` instance for the test set.
         """
         return DataLoader(
             self.dataset,
-            sampler=self.val_sampler,
+            sampler=self.test_sampler,
             num_workers=self.hparams.num_workers
         )
