@@ -17,7 +17,7 @@ class UNetClassifier(LightningModule):
             window_size: int,
             num_bands: int,
             size: int,
-            learning_rate: float = 0.01,
+            learning_rate: float = 1e-8,
             **kwargs: Any
     ) -> None:
         """
@@ -89,20 +89,20 @@ class UNetClassifier(LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        """Computes the loss for a test batch.
+    def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
+        """Computes the loss for a validation batch.
 
-        This method is called on each test batch during the training process. It computes the loss
+        This method is called on each validation batch during the training process. It computes the loss
         for the batch using the `_compute_loss` method and then logs the loss.
 
         Args:
-            test_batch (Dict[str, Tensor]): A dictionary of tensors containing the test batch data.
-            batch_idx (int): The index of the test batch.
+            val_batch (Dict[str, Tensor]): A dictionary of tensors containing the validation batch data.
+            batch_idx (int): The index of the validation batch.
 
         Returns:
-            Tensor: The loss for the test batch.
+            Tensor: The loss for the validation batch.
         """
-        loss = self._compute_loss(test_batch)
+        loss = self._compute_loss(val_batch)
 
-        self.log("test_loss", loss)
+        self.log("val_loss", loss)
         return loss
