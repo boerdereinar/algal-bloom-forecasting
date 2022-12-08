@@ -159,15 +159,17 @@ class Analyser:
         # Plot temporal sparsity
         dt = [(d2 - d1).days for d1, d2 in zip(dates, dates[1:])]
         binned_dt = np.bincount(dt)
+        plt.figure(figsize=(8, 4))
         plt.title("Days between samples")
         plt.xlabel("days")
-        plt.ylabel("number of samples")
+        plt.ylabel("samples")
         plt.bar(range(len(binned_dt)), binned_dt)
         plt.show()
 
         # Plot spatial sparsity
         for i, band in enumerate(self.dataset.all_bands):
             masked = np.ma.masked_where(~self.water_coverage, self.total_samples - self.measurements[i])
+            plt.figure(figsize=(8, 4))
             plt.title(f"{band.capitalize()} missing spatial samples")
             plt.imshow(masked, norm=LogNorm(), cmap="jet")
             plt.colorbar()
