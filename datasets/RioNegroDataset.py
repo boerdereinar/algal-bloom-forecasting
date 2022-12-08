@@ -2,7 +2,7 @@ import os.path
 import threading
 import time
 from datetime import timedelta, datetime
-from typing import Dict, Any, Callable
+from typing import Dict, Any
 
 import torch
 from torchgeo.datasets import GeoDataset, BoundingBox
