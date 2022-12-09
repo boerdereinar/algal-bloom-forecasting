@@ -9,7 +9,6 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=4G
 #SBATCH --output="out/slurm-%j.out"
-#SBATCH --error="out/slurm-%j.err"
 #SBATCH --signal=SIGUSR1@90
 
 # Activate the environment

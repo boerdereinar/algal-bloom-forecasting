@@ -8,7 +8,6 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=4G
 #SBATCH --output="out/slurm-%j.out"
-#SBATCH --error="out/slurm-%j.err"
 
 # Activate the environment
 source /home/${USER}/.bashrc

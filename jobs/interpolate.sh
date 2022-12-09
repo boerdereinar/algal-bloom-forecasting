@@ -5,10 +5,9 @@
 #SBATCH --partition=compute
 #SBATCH --time=4:00:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=3
 #SBATCH --mem=4G
 #SBATCH --output="out/slurm-%j.out"
-#SBATCH --error="out/slurm-%j.err"
 
 # Activate the environment
 source /home/${USER}/.bashrc
@@ -22,4 +21,5 @@ srun python3 -m ${USER}.main \
 preprocess Interpolate \
 -s /scratch/${USER}/algal-bloom/data/biological \
 -t /scratch/${USER}/algal-bloom/data/biological_processed \
--st LookBack
+-st LookBack \
+--num-workers 3
