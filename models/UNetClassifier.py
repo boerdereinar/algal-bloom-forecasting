@@ -17,7 +17,7 @@ class UNetClassifier(LightningModule):
             window_size: int,
             num_bands: int,
             size: int,
-            learning_rate: float = 1e-8,
+            learning_rate: float = 1e-4,
             **kwargs: Any
     ) -> None:
         """
@@ -39,7 +39,7 @@ class UNetClassifier(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("Model")
-        parser.add_argument("-lr", "--learning-rate", type=float, help="The learning rate of the model.", default=0.01)
+        parser.add_argument("-lr", "--learning-rate", type=float, help="The learning rate of the model.", default=1e-4)
         return parent_parser
 
     def forward(self, x: Tensor) -> Tensor:
