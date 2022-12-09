@@ -68,7 +68,7 @@ class RioNegroDataset(GeoDataset):
         )
 
     def __getitem__(self, query: BoundingBox) -> Dict[str, Any]:
-        ground_truth = self.biological_unprocessed[query]["image"][1]
+        ground_truth = self.biological_unprocessed[query]["image"][1].unsqueeze(0)
 
         mint = datetime.fromtimestamp(query.mint).replace(hour=0, minute=0, second=0, microsecond=0)
         maxt = datetime.fromtimestamp(query.maxt).replace(hour=23, minute=59, second=59, microsecond=999999)

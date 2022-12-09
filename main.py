@@ -76,9 +76,10 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
         trainer_args,
         callbacks=[lr_monitor],
         logger=wandb_logger,
-        auto_lr_find=True)
+        # auto_lr_find=True
+    )
 
-    trainer.tune(model, datamodule)
+    # trainer.tune(model, datamodule)
     trainer.fit(model, datamodule)
 
 

@@ -4,10 +4,10 @@ from typing import Any, Dict
 import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor
+from torch.nn.functional import mse_loss
 from torch.optim import Adam, Optimizer
 
 from edegruyl.models import UNet
-from edegruyl.models.functional import mse_loss
 
 
 class UNetClassifier(LightningModule):
@@ -46,7 +46,7 @@ class UNetClassifier(LightningModule):
         """Performs the forward pass of the UNet model.
 
         Args:
-            x (Tensor): The input tensor to the model, of shape (batch_size, window_size * num_bands, size, size).
+            x (Tensor): The input tensor to the model, of shape (batch_size, window_size, num_bands, size, size).
 
         Returns:
             Tensor: The output of the model, of shape (batch_size, 1, size, size).
@@ -66,8 +66,8 @@ class UNetClassifier(LightningModule):
         Returns:
             Tensor: The mean squared error between the predicted and ground truth labels.
         """
-        x = torch.nan_to_num(batch["images"])
-        y = batch["ground_truth"]
+        x = torch.nan_to_num(batch["images"], nan=1e-8)
+        y = torch.nan_to_num(batch["ground_truth"], nan=1e-8)
         y_hat = self.forward(x)
         return mse_loss(y_hat, y)
 
