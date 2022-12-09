@@ -66,10 +66,18 @@ class UNetClassifier(LightningModule):
         Returns:
             Tensor: The mean squared error between the predicted and ground truth labels.
         """
-        x = torch.nan_to_num(batch["images"], nan=1e-8)
-        y = torch.nan_to_num(batch["ground_truth"], nan=1e-8)
+        x = batch["images"]
+        y = batch["ground_truth"]
+
+        # Mask for output NaN's
+        mask = ~y.isnan()
+
+        # Remove NaN's from the input and output tensors
+        x = x.nan_to_num()
+        y = y.nan_to_num()
+
         y_hat = self.forward(x)
-        return mse_loss(y_hat, y)
+        return mse_loss(y_hat[mask], y[mask])
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         """Computes the loss for a training batch.

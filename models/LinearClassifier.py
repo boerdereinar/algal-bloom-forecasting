@@ -4,10 +4,9 @@ from typing import Any, Dict
 import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor, nn
+from torch.nn.functional import mse_loss
 from torch.optim.adam import Adam
 from torch.optim.optimizer import Optimizer
-
-from edegruyl.models.functional import mse_loss
 
 
 class LinearClassifier(LightningModule):
@@ -43,20 +42,36 @@ class LinearClassifier(LightningModule):
     def configure_optimizers(self) -> Optimizer:
         return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
-    def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x = torch.nan_to_num(train_batch["images"])
-        y = train_batch["ground_truth"]
+    def _compute_loss(self, batch: Dict[str, Tensor]) -> Tensor:
+        """Computes the loss for a given batch of data.
+
+        Args:
+            batch (Dict[str, Tensor]): A dictionary of tensors containing the images and ground truth labels.
+
+        Returns:
+            Tensor: The mean squared error between the predicted and ground truth labels.
+        """
+        x = batch["images"]
+        y = batch["ground_truth"]
+
+        # Mask for output NaN's
+        mask = ~y.isnan()
+
+        # Remove NaN's from the input and output tensors
+        x = x.nan_to_num()
+        y = y.nan_to_num()
+
         y_hat = self.forward(x)
-        loss = mse_loss(y_hat, y)
+        return mse_loss(y_hat[mask], y[mask])
+
+    def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
+        loss = self._compute_loss(train_batch)
 
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x = torch.nan_to_num(train_batch["images"])
-        y = train_batch["ground_truth"]
-        y_hat = self.forward(x)
-        loss = mse_loss(y_hat, y)
+    def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
+        loss = self._compute_loss(val_batch)
 
         self.log("val_loss", loss)
         return loss
