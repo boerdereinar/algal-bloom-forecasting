@@ -78,6 +78,9 @@ class InterpolatePreprocessor(Preprocessor):
                     datetime.strptime(match["date"], self.date_format)
                 ))
 
+        for k, v in reservoirs.items():
+            reservoirs[k] = sorted(v, key=lambda x: x.date)
+
         Parallel(self.num_workers)(
             delayed(self._preprocess_reservoir)(item, i) for i, item in enumerate(reservoirs.items())
         )
