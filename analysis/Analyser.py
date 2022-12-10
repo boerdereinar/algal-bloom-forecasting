@@ -88,15 +88,15 @@ class Analyser:
         intersections = list(self.dataset.index.intersection(self.dataset.index.bounds, objects=True))
         data = Parallel(8)(delayed(self._load_file)(item.object) for item in tqdm(intersections))
         data = np.stack(data, axis=1)
-        is_not_nan = ~np.isnan(data)
+        data = data[:, :, self.water_coverage]
 
         self.total_samples = data.shape[1]
-        self.measurements = np.count_nonzero(is_not_nan, axis=1)
+        self.measurements = np.count_nonzero(~np.isnan(data), axis=1)
 
-        ax = (1, 2, 3)
+        ax = (1, 2)
         self.stats = {
             "Total": (total := np.repeat(data[0].size, len(data))),
-            "Non-NaN Values": (non_nan := np.count_nonzero(is_not_nan, axis=ax)),
+            "Non-NaN Values": (non_nan := np.count_nonzero(self.measurements, axis=1)),
             "Non-NaN Ratio": non_nan / total,
             "Min": np.nanmin(data, axis=ax),
             "Max": np.nanmax(data, axis=ax),
@@ -109,8 +109,8 @@ class Analyser:
 
         # Threshold
         self.thresh = self.stats["Mean"] + 3.5 * self.stats["Standard Deviation"]
-        below_thresh = data <= self.thresh[:, None, None, None]
-        above_thresh = data > self.thresh[:, None, None, None]
+        below_thresh = data <= self.thresh[:, None, None]
+        above_thresh = data > self.thresh[:, None, None]
 
         self.thresh_stats = {
             "Threshold": self.thresh,
@@ -168,10 +168,14 @@ class Analyser:
 
         # Plot spatial sparsity
         for i, band in enumerate(self.dataset.all_bands):
-            masked = np.ma.masked_where(~self.water_coverage, self.total_samples - self.measurements[i])
-            plt.figure(figsize=(8, 4))
+            missing_samples = np.ma.masked_where(~self.water_coverage, np.zeros(self.water_coverage.shape))
+            missing_samples[np.where(self.water_coverage)] = self.total_samples - self.measurements[i]
+            missing_samples[0, 0] = 10
+            missing_samples.mask[0, 0] = False
+
+            plt.figure(figsize=(9, 4))
             plt.title(f"{band.capitalize()} missing spatial samples")
-            plt.imshow(masked, norm=LogNorm(), cmap="jet")
+            plt.imshow(missing_samples, norm=LogNorm(), cmap="jet")
             plt.colorbar()
             plt.show()
 
