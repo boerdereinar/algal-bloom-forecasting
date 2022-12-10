@@ -6,8 +6,8 @@
 #SBATCH --time=4:00:00
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-task=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=4G
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=32G
 #SBATCH --output="out/slurm-%j.out"
 #SBATCH --signal=SIGUSR1@90
 
@@ -26,7 +26,7 @@ train UNet RioNegro \
 --window-size 5 \
 --prediction-horizon 5 \
 --size 256 \
---num-workers 6 \
+--num-workers 16 \
 --accelerator gpu \
 --devices 1 \
 --max_epochs 10
