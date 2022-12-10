@@ -4,8 +4,9 @@ import sys
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter, RawTextHelpFormatter
 from typing import List, Iterable, Tuple
 
+import pytorch_lightning.callbacks
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, BatchSizeFinder
 from pytorch_lightning.loggers import WandbLogger
 
 import edegruyl.datamodules
@@ -69,12 +70,16 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
 
     # Logging
     lr_monitor = LearningRateMonitor("step", True)
-    wandb_logger = WandbLogger(project="algal-bloom")
+    # batch_size_finder = BatchSizeFinder()
+    wandb_logger = WandbLogger(project="algal-bloom", log_model=True)
 
     # Trainer
     trainer: Trainer = Trainer.from_argparse_args(
         trainer_args,
-        callbacks=[lr_monitor],
+        callbacks=[
+            lr_monitor,
+            # batch_size_finder
+        ],
         logger=wandb_logger,
         # auto_lr_find=True
     )
