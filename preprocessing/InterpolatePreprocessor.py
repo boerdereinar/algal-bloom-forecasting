@@ -34,7 +34,7 @@ class File:
 class InterpolatePreprocessor(Preprocessor):
     """Preprocessor for interpolating missing data."""
 
-    filename_regex = re.compile(r"^.*[\\/](?P<reservoir>.+)_(?P<date>\d{8})T\d{6}_(?P<dataset>.+\.tif)$")
+    filename_regex = re.compile(r"^.*[\\/](?P<reservoir>.+)_(?P<date>\d{8})T\d{6}_(?P<dataset>.+)\.tif$")
     date_format = "%Y%m%d"
     strategy: "Strategy"
 
