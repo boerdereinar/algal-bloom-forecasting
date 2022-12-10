@@ -1,6 +1,4 @@
 import os.path
-import threading
-import time
 from datetime import timedelta, datetime
 from typing import Dict, Any
 
@@ -9,7 +7,7 @@ from torchgeo.datasets import GeoDataset, BoundingBox
 from tqdm import tqdm
 
 from edegruyl.datasets import BiologicalDataset
-from edegruyl.transforms import Normalize
+from edegruyl.transforms import Normalize, Clip
 
 
 class RioNegroDataset(GeoDataset):
@@ -20,6 +18,7 @@ class RioNegroDataset(GeoDataset):
         super().__init__()
         self.window_size = window_size
         self.prediction_horizon = prediction_horizon
+        self.clip = Clip(torch.tensor([8.74785, 240.943, 72.4036]))
         self.normalize = Normalize(torch.tensor([8.74785, 240.943, 72.4036]))
 
         # Load the datasets
@@ -44,7 +43,7 @@ class RioNegroDataset(GeoDataset):
         pbar.set_description("Loading biological dataset")
         self.biological_unprocessed = BiologicalDataset(
             os.path.join(root, "biological", reservoir),
-            transforms=self.normalize
+            transforms=self.clip
         )
         pbar.update(1)
 

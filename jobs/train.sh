@@ -26,10 +26,9 @@ train UNet RioNegro \
 --window-size 5 \
 --prediction-horizon 5 \
 --size 256 \
---batch-size 20 \
---length 10000 \
+--batch-size 10 \
+--length 5000 \
 --num-workers 16 \
 --accelerator gpu \
 --devices 1 \
---max_epochs 50 \
---log_every_n_steps 5
+--max_epochs 30
