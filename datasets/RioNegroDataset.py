@@ -39,33 +39,21 @@ class RioNegroDataset(GeoDataset):
     def load_datasets(self, root: str, reservoir: str):
         print("Loading datasets...")
 
-        loaders = [
-            self.load_biological_unprocessed,
-            self.load_biological_processed
-        ]
+        pbar = tqdm(total=2)
 
-        # Load the datasets whilst updating the timer of the progress bar
-        for loader in (pbar := tqdm(loaders)):
-            x = threading.Thread(target=loader, args=[pbar, root, reservoir])
-            x.start()
-            while x.is_alive():
-                time.sleep(0.1)
-                pbar.refresh()
-            x.join()
-
-    def load_biological_unprocessed(self, pbar: tqdm, root: str, reservoir: str):
-        pbar.set_description("Unprocessed biological dataset")
+        pbar.set_description("Loading biological dataset")
         self.biological_unprocessed = BiologicalDataset(
             os.path.join(root, "biological", reservoir),
             transforms=self.normalize
         )
+        pbar.update(1)
 
-    def load_biological_processed(self, pbar: tqdm, root: str, reservoir: str):
-        pbar.set_description("Processed biological dataset")
+        pbar.set_description("Loading processed biological dataset")
         self.biological_processed = BiologicalDataset(
             os.path.join(root, "biological_processed", reservoir),
             transforms=self.normalize
         )
+        pbar.update(1)
 
     def __getitem__(self, query: BoundingBox) -> Dict[str, Any]:
         ground_truth = self.biological_unprocessed[query]["image"][1].unsqueeze(0)
