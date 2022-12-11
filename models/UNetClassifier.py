@@ -77,7 +77,7 @@ class UNetClassifier(LightningModule):
         y = y.nan_to_num()
 
         y_hat = self.forward(x)
-        return mse_loss(y_hat[mask], y[mask])
+        return mse_loss(y_hat[mask], y[mask]).nan_to_num()
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         """Computes the loss for a training batch.
