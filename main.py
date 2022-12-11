@@ -4,7 +4,6 @@ import sys
 from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter, RawTextHelpFormatter
 from typing import List, Iterable, Tuple
 
-# import pytorch_lightning.callbacks
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor  # , BatchSizeFinder
 from pytorch_lightning.loggers import WandbLogger

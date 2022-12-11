@@ -29,6 +29,7 @@ train UNet RioNegro \
 --batch-size 10 \
 --length 5000 \
 --num-workers 16 \
+--default_root_dir /scratch/${USER}/algal-bloom/checkpoints \
 --accelerator gpu \
 --devices 1 \
 --max_epochs 30
