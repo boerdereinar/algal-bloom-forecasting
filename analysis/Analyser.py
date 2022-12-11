@@ -170,7 +170,7 @@ class Analyser:
         dt = [(d2 - d1).days for d1, d2 in zip(dates, dates[1:])]
         binned_dt = np.bincount(dt)
         plt.figure(figsize=(8, 4))
-        plt.title("Days between samples")
+        plt.title("Days between consecutive samples")
         plt.xlabel("days")
         plt.ylabel("samples")
         plt.bar(range(len(binned_dt)), binned_dt)
