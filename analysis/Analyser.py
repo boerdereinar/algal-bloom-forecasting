@@ -38,18 +38,24 @@ class Analyser:
     stats: Dict[str, np.ndarray]
     measurements: np.ndarray
     hists: Sequence[Tuple[np.ndarray, np.ndarray]]
-    thresh: Sequence[float]
+    thresh: np.ndarray
     thresh_stats: Dict[str, np.ndarray]
     thresh_hists: Sequence[Tuple[np.ndarray, np.ndarray]]
 
-    def __init__(self, root: str, reservoir: str, land_cover: str):
+    def __init__(self, root: str, reservoir: str, land_cover: str, save_dir: str = None, save_plots: bool = False):
         """Constructs a new `Analyser` object.
 
         Args:
             root: The root directory where the data is stored.
             reservoir: The specific reservoir of data to analyze.
             land_cover: The path to the land coverage tif file.
+            save_dir: The save directory.
+            save_plots: Whether to save the plots.
         """
+        self.reservoir = reservoir
+        self.save_dir = save_dir
+        self.save_plots = save_plots
+
         path = os.path.join(root, "biological", reservoir)
         self.dataset = BiologicalDataset(path)
 
@@ -76,6 +82,8 @@ class Analyser:
         parent_parser.add_argument("root", type=str, help="The root directory.")
         parent_parser.add_argument("reservoir", type=str, help="The reservoir to analyse.")
         parent_parser.add_argument("land_cover", type=str, help="The path to the land coverage tif file.")
+        parent_parser.add_argument("--save-dir", type=str, help="The save directory.")
+        parent_parser.add_argument("--save-plots", action="store_true", help="Whether to save the plots.")
         return parent_parser
 
     def analyse(self):
@@ -86,7 +94,7 @@ class Analyser:
         `hists`, `thresh`, `thresh_stats`, and `thresh_hists` attributes.
         """
         intersections = list(self.dataset.index.intersection(self.dataset.index.bounds, objects=True))
-        data = Parallel(8)(delayed(self._load_file)(item.object) for item in tqdm(intersections))
+        data: np.ndarray = Parallel(8)(delayed(self._load_file)(item.object) for item in tqdm(intersections))
         data = np.stack(data, axis=1)
         data = data[:, :, self.water_coverage]
 
@@ -143,12 +151,14 @@ class Analyser:
     def plot_histograms(self):
         """Plots the histograms of the analysis results using Matplotlib."""
         for i, band in enumerate(self.dataset.all_bands):
-            fig, (ax1, ax2) = plt.subplots(2, 1, constrained_layout=True)
-            fig.suptitle(band.capitalize())
+            fig, (ax1, ax2) = plt.subplots(2, 1, constrained_layout=True, figsize=(8, 8))
+            ax1.set_title(band.capitalize())
             ax1.stairs(*self.hists[i])
 
-            ax2.set_title(fr"Threshold = {self.thresh[i]:.5f} (3.5$\sigma$)")
+            ax2.set_title(fr"threshold = {self.thresh[i]:.5f} (3.5$\sigma$)")
             ax2.stairs(*self.thresh_hists[i])
+            if self.save_plots:
+                plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_{band}_hist.png"), transparent=True)
             plt.show()
 
     def plot_sparsity(self):
@@ -164,6 +174,8 @@ class Analyser:
         plt.xlabel("days")
         plt.ylabel("samples")
         plt.bar(range(len(binned_dt)), binned_dt)
+        if self.save_plots:
+            plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_days_between_samples.png"), transparent=True)
         plt.show()
 
         # Plot spatial sparsity
@@ -173,10 +185,13 @@ class Analyser:
             missing_samples[0, 0] = 10
             missing_samples.mask[0, 0] = False
 
-            plt.figure(figsize=(9, 4))
+            plt.figure(figsize=(8, 4))
             plt.title(f"{band.capitalize()} missing spatial samples")
             plt.imshow(missing_samples, norm=LogNorm(), cmap="jet")
             plt.colorbar()
+            if self.save_plots:
+                path = os.path.join(self.save_dir, f"{self.reservoir}_{band}_missing_spatial_samples.png")
+                plt.savefig(path, transparent=True)
             plt.show()
 
     @staticmethod

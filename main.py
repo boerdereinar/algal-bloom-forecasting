@@ -21,7 +21,7 @@ def analyse(args: Namespace, unknown_args: List[str]) -> None:
         args: The arguments from the parent parser.
         unknown_args: The remaining arguments.
     """
-    analyser = Analyser(args.root, args.reservoir, args.land_cover)
+    analyser = Analyser(args.root, args.reservoir, args.land_cover, args.save_dir, args.save_plots)
     analyser.analyse()
 
 
