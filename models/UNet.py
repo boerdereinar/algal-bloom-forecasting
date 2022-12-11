@@ -54,9 +54,6 @@ class UNet(nn.Module):
         x = self.up4(x, x1)
         x = self.outc(x)
 
-        # Sigmoid
-        x = torch.sigmoid(x)
-
         return x
 
 
