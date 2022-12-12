@@ -1,11 +1,14 @@
 from argparse import ArgumentParser
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor
 from torch.nn.functional import mse_loss
 from torch.optim import Adam, Optimizer
+from wandb import Image
 
 from edegruyl.models import UNet
 
@@ -57,14 +60,14 @@ class UNetClassifier(LightningModule):
     def configure_optimizers(self) -> Optimizer:
         return Adam(self.parameters(), lr=self.hparams.learning_rate)
 
-    def _compute_loss(self, batch: Dict[str, Tensor]) -> Tensor:
-        """Computes the loss for a given batch of data.
+    def _preprocess_batch(self, batch: Dict[str, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
+        """Preprocess the given batch of data.
 
         Args:
-            batch (Dict[str, Tensor]): A dictionary of tensors containing the images and ground truth labels.
+            batch: A dictionary of tensors containing the images and ground truth labels.
 
         Returns:
-            Tensor: The mean squared error between the predicted and ground truth labels.
+            A tuple of the input tensor, the predicted tensor and the mask for all valid labels.
         """
         x = batch["images"]
         y = batch["ground_truth"]
@@ -76,8 +79,7 @@ class UNetClassifier(LightningModule):
         x = x.nan_to_num()
         y = y.nan_to_num()
 
-        y_hat = self.forward(x)
-        return mse_loss(y_hat[mask], y[mask]).nan_to_num()
+        return x, y, mask
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         """Computes the loss for a training batch.
@@ -92,7 +94,9 @@ class UNetClassifier(LightningModule):
         Returns:
             Tensor: The loss for the training batch.
         """
-        loss = self._compute_loss(train_batch)
+        x, y, mask = self._preprocess_batch(train_batch)
+        y_hat = self(x)
+        loss = mse_loss(y_hat[mask], y[mask]).nan_to_num()
 
         self.log("train_loss", loss)
         return loss
@@ -110,7 +114,9 @@ class UNetClassifier(LightningModule):
         Returns:
             Tensor: The loss for the validation batch.
         """
-        loss = self._compute_loss(val_batch)
+        x, y, mask = self._preprocess_batch(val_batch)
+        y_hat = self(x)
+        loss = mse_loss(y_hat[mask], y[mask]).nan_to_num()
 
         self.log("val_loss", loss)
         return loss

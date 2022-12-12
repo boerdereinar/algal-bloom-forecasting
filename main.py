@@ -5,7 +5,7 @@ from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter, R
 from typing import List, Iterable, Tuple
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor  # , BatchSizeFinder
+from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import WandbLogger
 
 import edegruyl.datamodules
@@ -57,7 +57,10 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
     datamodule_name = f"{args.data_module}DataModule"
     datamodule_class = getattr(edegruyl.datamodules, datamodule_name)
 
-    trainer_parser = ArgumentParser(prog=f"main.py train {args.model}", formatter_class=ArgumentDefaultsHelpFormatter)
+    trainer_parser = ArgumentParser(
+        prog=f"main.py train {args.model} {args.data_module}",
+        formatter_class=ArgumentDefaultsHelpFormatter
+    )
     Trainer.add_argparse_args(trainer_parser)
     model_class.add_model_specific_args(trainer_parser)
     datamodule_class.add_datamodule_specific_args(trainer_parser)
@@ -69,18 +72,13 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
 
     # Logging
     lr_monitor = LearningRateMonitor("step", True)
-    # batch_size_finder = BatchSizeFinder()
-    wandb_logger = WandbLogger(project="algal-bloom", log_model=True)
+    # wandb_logger = WandbLogger(project="algal-bloom", log_model=True)
 
     # Trainer
     trainer: Trainer = Trainer.from_argparse_args(
         trainer_args,
-        callbacks=[
-            lr_monitor,
-            # batch_size_finder
-        ],
-        logger=wandb_logger,
-        # auto_lr_find=True
+        callbacks=[lr_monitor],
+        # logger=wandb_logger
     )
 
     # trainer.tune(model, datamodule)

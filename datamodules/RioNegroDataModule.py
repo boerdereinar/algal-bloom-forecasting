@@ -39,7 +39,7 @@ class RioNegroDataModule(LightningDataModule):
             prediction_horizon: int,
             train_test_split: float = 0.8,
             size: int = 256,
-            batch_size: int = 6,
+            batch_size: int = 1,
             length: int = 1000,
             num_workers: int = 0,
             **kwargs: Any
@@ -57,7 +57,7 @@ class RioNegroDataModule(LightningDataModule):
             size: The size of the patches of data that will be sampled. The
                 default value is 256.
             batch_size: The size of the batches that will be sampled. The
-                default value is 6.
+                default value is 1.
             length: The number of samples that will be generated per epoch.
                 The default value is 1000.
             num_workers: The number of workers to use for parallel data loading.
@@ -67,10 +67,7 @@ class RioNegroDataModule(LightningDataModule):
         """
         super().__init__()
 
-        self.root = root
-        self.reservoir = reservoir
-
-        self.save_hyperparameters(ignore=["root", "reservoir"] + list(kwargs))
+        self.save_hyperparameters(ignore=list(kwargs))
 
     @staticmethod
     def add_datamodule_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -97,7 +94,7 @@ class RioNegroDataModule(LightningDataModule):
         parser.add_argument("--train-test-split", type=float, default=0.8,
                             help="The ratio between the number of training and test samples.")
         parser.add_argument("--size", type=int, help="The size of the sampled patches in pixels.", default=256)
-        parser.add_argument("--batch-size", type=int, help="The size of the batches.", default=6)
+        parser.add_argument("--batch-size", type=int, help="The size of the batches.", default=1)
         parser.add_argument("--length", type=int, help="The number of samples per epoch.", default=1000)
         parser.add_argument("--num-workers", type=int, help="The number of workers to load the date with", default=0)
         return parent_parser
@@ -116,7 +113,7 @@ class RioNegroDataModule(LightningDataModule):
             stage: The stage of the training process that this data module is being
                 set up for. This can be one of "fit", "test", or "predict".
         """
-        self.dataset = RioNegroDataset(self.root, self.reservoir, **self.hparams)
+        self.dataset = RioNegroDataset(**self.hparams)
 
         # Train-test split
         t = (self.dataset.roi.maxt - self.dataset.roi.mint) * self.hparams.train_test_split + self.dataset.roi.mint
@@ -165,7 +162,7 @@ class RioNegroDataModule(LightningDataModule):
         """Returns a PyTorch `DataLoader` instance for the validation set.
 
         This method returns a PyTorch `DataLoader` instance that can be used to
-        load data for test. It creates the `DataLoader` instance by calling
+        load data for validation. It creates the `DataLoader` instance by calling
         `RioNegroDataset.get_dataloader` and passing in the `GridGeoSampler`
         instance that was created in the `setup` method.
 
