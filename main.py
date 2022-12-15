@@ -21,7 +21,7 @@ def analyse(args: Namespace, unknown_args: List[str]) -> None:
         args: The arguments from the parent parser.
         unknown_args: The remaining arguments.
     """
-    analyser = Analyser(args.root, args.reservoir, args.land_cover, args.save_dir, args.save_plots)
+    analyser = Analyser(**vars(args))
     analyser.analyse()
 
 
@@ -72,13 +72,13 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
 
     # Logging
     lr_monitor = LearningRateMonitor("step", True)
-    # wandb_logger = WandbLogger(project="algal-bloom", log_model=True)
+    wandb_logger = WandbLogger(project="algal-bloom", log_model=True)
 
     # Trainer
     trainer: Trainer = Trainer.from_argparse_args(
         trainer_args,
         callbacks=[lr_monitor],
-        # logger=wandb_logger
+        logger=wandb_logger
     )
 
     # trainer.tune(model, datamodule)

@@ -1,7 +1,7 @@
 import os.path
 from argparse import ArgumentParser
 from datetime import datetime
-from typing import Sequence, Tuple, Dict
+from typing import Sequence, Tuple, Dict, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -42,7 +42,16 @@ class Analyser:
     thresh_stats: Dict[str, np.ndarray]
     thresh_hists: Sequence[Tuple[np.ndarray, np.ndarray]]
 
-    def __init__(self, root: str, reservoir: str, land_cover: str, save_dir: str = None, save_plots: bool = False):
+    def __init__(
+            self,
+            root: str,
+            reservoir: str,
+            land_cover: str,
+            save_dir: str = None,
+            save_plots: bool = False,
+            exclude_titles: bool = False,
+            **kwargs: Any
+    ):
         """Constructs a new `Analyser` object.
 
         Args:
@@ -51,10 +60,12 @@ class Analyser:
             land_cover: The path to the land coverage tif file.
             save_dir: The save directory.
             save_plots: Whether to save the plots.
+            exclude_titles: Whether to exclude the titles from the plots.
         """
         self.reservoir = reservoir
         self.save_dir = save_dir
         self.save_plots = save_plots
+        self.exclude_titles = exclude_titles
 
         path = os.path.join(root, "biological", reservoir)
         self.dataset = BiologicalDataset(path)
@@ -84,6 +95,8 @@ class Analyser:
         parent_parser.add_argument("land_cover", type=str, help="The path to the land coverage tif file.")
         parent_parser.add_argument("--save-dir", type=str, help="The save directory.")
         parent_parser.add_argument("--save-plots", action="store_true", help="Whether to save the plots.")
+        parent_parser.add_argument("--exclude-titles", action="store_true",
+                                   help="Whether to exclude the titles from the plots.")
         return parent_parser
 
     def analyse(self):
@@ -113,7 +126,10 @@ class Analyser:
             "Standard Deviation": np.nanstd(data, axis=ax)
         }
 
-        self.hists = [np.histogram(x[~np.isnan(x)], bins=100) for x in data]
+        self.hists = [
+            np.histogram(x[~np.isnan(x)], bins=np.geomspace(1, self.stats["Max"][i], 50))
+            for i, x in enumerate(data)
+        ]
 
         # Threshold
         self.thresh = self.stats["Mean"] + 3.5 * self.stats["Standard Deviation"]
@@ -129,7 +145,14 @@ class Analyser:
             "Standard Deviation": np.std(data, axis=ax, where=below_thresh)
         }
 
-        self.thresh_hists = [np.histogram(x[below_thresh[i]], bins=100) for i, x in enumerate(data)]
+        self.thresh_hists = [np.histogram(x[below_thresh[i]], bins=100)
+                             for i, x in enumerate(data)]
+
+        # Styling
+        plt.rc("font", size=20)
+        plt.rc("axes", linewidth=1)
+        plt.rc("xtick.major", size=10)
+        plt.rc("xtick.minor", size=5)
 
         self.print_summary()
         self.plot_histograms()
@@ -151,14 +174,19 @@ class Analyser:
     def plot_histograms(self):
         """Plots the histograms of the analysis results using Matplotlib."""
         for i, band in enumerate(self.dataset.all_bands):
-            fig, (ax1, ax2) = plt.subplots(2, 1, constrained_layout=True, figsize=(8, 8))
-            ax1.set_title(band.capitalize())
-            ax1.stairs(*self.hists[i])
+            plt.figure(figsize=(8, 5), facecolor="none", layout="constrained")
+            ax = plt.gca()
+            if not self.exclude_titles:
+                plt.title(band.capitalize())
+            plt.xlabel(r"concentration (μg/L)")
+            plt.ylabel("occurrences")
+            plt.stairs(*self.hists[i], fill=True, color="#496F0B")
+            ax.set_xscale("log")
+            ax.set_facecolor("#E9F6D0")
+            ax.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
-            ax2.set_title(fr"threshold = {self.thresh[i]:.5f} (3.5$\sigma$)")
-            ax2.stairs(*self.thresh_hists[i])
             if self.save_plots:
-                plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_{band}_hist.png"), transparent=True)
+                plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_{band}_hist.png"))
             plt.show()
 
     def plot_sparsity(self):
@@ -169,13 +197,16 @@ class Analyser:
         # Plot temporal sparsity
         dt = [(d2 - d1).days for d1, d2 in zip(dates, dates[1:])]
         binned_dt = np.bincount(dt)
-        plt.figure(figsize=(8, 4))
-        plt.title("Days between consecutive samples")
+        plt.figure(figsize=(8, 5), facecolor="none", layout="constrained")
+        if not self.exclude_titles:
+            plt.title("Days between consecutive samples")
         plt.xlabel("days")
         plt.ylabel("samples")
-        plt.bar(range(len(binned_dt)), binned_dt)
+        plt.bar(range(len(binned_dt)), binned_dt, color="#496F0B")
+        plt.gca().set_facecolor("#E9F6D0")
+
         if self.save_plots:
-            plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_days_between_samples.png"), transparent=True)
+            plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_days_between_samples.png"))
         plt.show()
 
         # Plot spatial sparsity
@@ -186,8 +217,11 @@ class Analyser:
             missing_samples.mask[0, 0] = False
 
             plt.figure(figsize=(8, 4))
-            plt.title(f"{band.capitalize()} missing spatial samples")
+            if not self.exclude_titles:
+                plt.title(f"{band.capitalize()} missing spatial samples")
             plt.imshow(missing_samples, norm=LogNorm(), cmap="jet")
+            plt.gca().set_xticks([])
+            plt.gca().set_yticks([])
             plt.colorbar()
             if self.save_plots:
                 path = os.path.join(self.save_dir, f"{self.reservoir}_{band}_missing_spatial_samples.png")
