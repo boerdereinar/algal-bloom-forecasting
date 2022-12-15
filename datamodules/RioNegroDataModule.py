@@ -62,8 +62,7 @@ class RioNegroDataModule(LightningDataModule):
                 The default value is 1000.
             num_workers: The number of workers to use for parallel data loading.
                 The default value is 0.
-            kwargs: Additional keyword arguments. These will be saved and
-                accessible via the `hparams` attribute of this data module.
+            kwargs: Additional keyword arguments.
         """
         super().__init__()
 
@@ -144,11 +143,6 @@ class RioNegroDataModule(LightningDataModule):
     def train_dataloader(self) -> DataLoader:
         """Returns a PyTorch `DataLoader` instance for the training set.
 
-        This method returns a PyTorch `DataLoader` instance that can be used to
-        load data for training. It creates the `DataLoader` instance by calling
-        `RioNegroDataset.get_dataloader` and passing in the `RandomBatchGeoSampler`
-        instance that was created in the `setup` method.
-
         Returns:
             A PyTorch `DataLoader` instance for the training set.
         """
@@ -161,11 +155,6 @@ class RioNegroDataModule(LightningDataModule):
     def val_dataloader(self) -> DataLoader:
         """Returns a PyTorch `DataLoader` instance for the validation set.
 
-        This method returns a PyTorch `DataLoader` instance that can be used to
-        load data for validation. It creates the `DataLoader` instance by calling
-        `RioNegroDataset.get_dataloader` and passing in the `GridGeoSampler`
-        instance that was created in the `setup` method.
-
         Returns:
             A PyTorch `DataLoader` instance for the validation set.
         """
@@ -174,3 +163,11 @@ class RioNegroDataModule(LightningDataModule):
             sampler=self.val_sampler,
             num_workers=self.hparams.num_workers
         )
+
+    def test_dataloader(self) -> DataLoader:
+        """Returns a PyTorch `DataLoader` instance for the test set.
+
+        Returns:
+            A PyTorch `DataLoader` instance for the test set.
+        """
+        return self.val_dataloader()

@@ -93,7 +93,7 @@ class Analyser:
         parent_parser.add_argument("root", type=str, help="The root directory.")
         parent_parser.add_argument("reservoir", type=str, help="The reservoir to analyse.")
         parent_parser.add_argument("land_cover", type=str, help="The path to the land coverage tif file.")
-        parent_parser.add_argument("--save-dir", type=str, help="The save directory.")
+        parent_parser.add_argument("--save-dir", type=str, help="The save directory for the plots.")
         parent_parser.add_argument("--save-plots", action="store_true", help="Whether to save the plots.")
         parent_parser.add_argument("--exclude-titles", action="store_true",
                                    help="Whether to exclude the titles from the plots.")

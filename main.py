@@ -85,6 +85,32 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
     trainer.fit(model, datamodule)
 
 
+def test(args: Namespace, unknown_args: List[str]) -> None:
+    model_name = f"{args.model}Model"
+    model_class = getattr(edegruyl.models, model_name)
+
+    datamodule_name = f"{args.data_module}DataModule"
+    datamodule_class = getattr(edegruyl.datamodules, datamodule_name)
+
+    test_parser = ArgumentParser(
+        prog=f"main.py test {args.model} {args.data_module}",
+        formatter_class=ArgumentDefaultsHelpFormatter
+    )
+    Trainer.add_argparse_args(test_parser)
+    test_parser.add_argument("--checkpoint-path", type=str, help="The path to the checkpoint.", required=True)
+    test_parser.add_argument("--save-dir", type=str, help="The save directory for the plots.", default=None)
+    test_args = test_parser.parse_args(unknown_args)
+
+    # Model
+    model = model_class.load_from_checkpoint(test_args.checkpoint_path, save_dir=test_args.save_dir)
+    datamodule = datamodule_class.load_from_checkpoint(test_args.checkpoint_path)
+
+    # Trainer
+    trainer: Trainer = Trainer.from_argparse_args(test_args)
+
+    trainer.test(model, datamodule)
+
+
 def main() -> None:
     # Get all classes
     preprocessors = list(get_classes_in_module_endswith(edegruyl.preprocessing, "Preprocessor"))
@@ -121,6 +147,16 @@ def main() -> None:
     train_parser.add_argument("data_module", choices=[x for x, _ in data_modules], metavar="DATA_MODULES",
                               help=data_module_help)
     train_parser.set_defaults(func=train)
+
+    # Test
+    model_help = model_help.replace("train on", "test")
+
+    test_parser = subparsers.add_parser("test", add_help=len(sys.argv) in [3, 4], help="Test a model on a dataset.",
+                                        formatter_class=RawTextHelpFormatter)
+    test_parser.add_argument("model", choices=[x for x, _ in models], metavar="MODELS", help=model_help)
+    test_parser.add_argument("data_module", choices=[x for x, _ in data_modules], metavar="DATA_MODULES",
+                             help=data_module_help)
+    test_parser.set_defaults(func=test)
 
     # Run the parser
     args, unknown_args = parser.parse_known_args()

@@ -1,7 +1,10 @@
+import os
 from argparse import ArgumentParser
 from typing import Any, Dict, Tuple
 
+import matplotlib.pyplot as plt
 import torch
+from matplotlib.colors import LogNorm
 from pytorch_lightning import LightningModule
 from torch import Tensor
 from torch.nn.functional import mse_loss
@@ -18,6 +21,7 @@ class UNetModel(LightningModule):
             num_bands: int,
             size: int,
             learning_rate: float = 1e-4,
+            save_dir: str = None,
             **kwargs: Any
     ) -> None:
         """
@@ -40,6 +44,7 @@ class UNetModel(LightningModule):
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("Model")
         parser.add_argument("-lr", "--learning-rate", type=float, help="The learning rate of the model.", default=1e-4)
+        parser.add_argument("--save-dir", type=str, help="The save directory for the plots.", default=None)
         return parent_parser
 
     def forward(self, x: Tensor) -> Tensor:
@@ -117,3 +122,26 @@ class UNetModel(LightningModule):
 
         self.log("val_loss", loss)
         return loss
+
+    def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
+        x, y, mask = self._preprocess_batch(test_batch)
+        y_hat = self(x)
+
+        squared_error = torch.empty_like(y)
+        squared_error[:] = torch.nan
+        squared_error[torch.where(mask)] = (y[mask] - y_hat[mask]) ** 2
+
+        return squared_error
+
+    def test_epoch_end(self, outputs) -> None:
+        outputs = torch.cat(outputs)[:, 0]
+        mse = torch.nanmean(outputs, 0)
+
+        plt.figure(figsize=(8, 4))
+        plt.title("MSE loss")
+        plt.imshow(mse.cpu(), norm=LogNorm(), cmap="jet")
+        plt.colorbar()
+        if self.hparams.save_dir:
+            path = os.path.join(self.hparams.save_dir, "mse_loss_validation.png")
+            plt.savefig(path, transparent=True)
+        plt.show()
