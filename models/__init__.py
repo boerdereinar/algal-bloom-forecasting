@@ -1,3 +1,3 @@
-from edegruyl.models.LinearClassifier import LinearClassifier
+from edegruyl.models.LinearModel import LinearModel
 from edegruyl.models.UNet import UNet
-from edegruyl.models.UNetClassifier import UNetClassifier
+from edegruyl.models.UNetModel import UNetModel

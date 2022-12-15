@@ -1,19 +1,16 @@
 from argparse import ArgumentParser
 from typing import Any, Dict, Tuple
 
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor
 from torch.nn.functional import mse_loss
 from torch.optim import Adam, Optimizer
-from wandb import Image
 
 from edegruyl.models import UNet
 
 
-class UNetClassifier(LightningModule):
+class UNetModel(LightningModule):
     """A UNet-based classifier for image segmentation."""
     def __init__(
             self,

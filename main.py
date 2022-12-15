@@ -51,7 +51,7 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
         args: The arguments from the parent parser. Must contain the `model` key.
         unknown_args: The remaining arguments.
     """
-    model_name = f"{args.model}Classifier"
+    model_name = f"{args.model}Model"
     model_class = getattr(edegruyl.models, model_name)
 
     datamodule_name = f"{args.data_module}DataModule"
@@ -88,7 +88,7 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
 def main() -> None:
     # Get all classes
     preprocessors = list(get_classes_in_module_endswith(edegruyl.preprocessing, "Preprocessor"))
-    models = list(get_classes_in_module_endswith(edegruyl.models, "Classifier"))
+    models = list(get_classes_in_module_endswith(edegruyl.models, "Model"))
     data_modules = list(get_classes_in_module_endswith(edegruyl.datamodules, "DataModule"))
 
     parser = ArgumentParser()

@@ -1,7 +1,6 @@
 from argparse import ArgumentParser
 from typing import Any, Dict
 
-import torch
 from pytorch_lightning import LightningModule
 from torch import Tensor, nn
 from torch.nn.functional import mse_loss
@@ -9,7 +8,7 @@ from torch.optim.adam import Adam
 from torch.optim.optimizer import Optimizer
 
 
-class LinearClassifier(LightningModule):
+class LinearModel(LightningModule):
     """A linear model."""
     def __init__(
             self,
@@ -19,7 +18,7 @@ class LinearClassifier(LightningModule):
             learning_rate: float = 0.01,
             **kwargs: Any
     ) -> None:
-        super(LinearClassifier, self).__init__()
+        super(LinearModel, self).__init__()
         self.save_hyperparameters(ignore=list(kwargs))
 
         n_in = window_size * num_bands * size * size
