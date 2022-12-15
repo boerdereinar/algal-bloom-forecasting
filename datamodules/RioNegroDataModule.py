@@ -115,22 +115,23 @@ class RioNegroDataModule(LightningDataModule):
         self.dataset = RioNegroDataset(**self.hparams)
 
         # Train-test split
-        t = (self.dataset.roi.maxt - self.dataset.roi.mint) * self.hparams.train_test_split + self.dataset.roi.mint
+        roi = self.dataset.roi
+        t = (roi.maxt - roi.mint) * self.hparams.train_test_split + roi.mint  # type: ignore
         mint = datetime.fromtimestamp(t).replace(hour=0, minute=0, second=0, microsecond=0)
         maxt = mint - timedelta(microseconds=1)
 
         # Training sampler
-        train_roi = BoundingBox(*self.dataset.roi[:5], maxt.timestamp())
+        train_roi = BoundingBox(roi.minx, roi.maxx, roi.miny, roi.maxy, roi.mint, maxt.timestamp())
         self.train_sampler = RandomBatchGeoSampler(
             self.dataset.biological_unprocessed,
-            size=self.hparams.size,
-            batch_size=self.hparams.batch_size,
-            length=self.hparams.length,
+            size=self.hparams.size,  # type: ignore
+            batch_size=self.hparams.batch_size,  # type: ignore
+            length=self.hparams.length,  # type: ignore
             roi=train_roi
         )
 
         # Validation sampler
-        val_roi = BoundingBox(*self.dataset.roi[:4], mint.timestamp(), self.dataset.roi.maxt)
+        val_roi = BoundingBox(roi.minx, roi.maxx, roi.miny, roi.maxy, mint.timestamp(), roi.maxt)
         minx, maxx, miny, maxy = self.dataset.roi[:4]
         self.val_sampler = GridGeoSampler(
             self.dataset.biological_unprocessed,
@@ -149,7 +150,7 @@ class RioNegroDataModule(LightningDataModule):
         return DataLoader(
             self.dataset,
             batch_sampler=self.train_sampler,
-            num_workers=self.hparams.num_workers
+            num_workers=self.hparams.num_workers  # type: ignore
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -161,7 +162,7 @@ class RioNegroDataModule(LightningDataModule):
         return DataLoader(
             self.dataset,
             sampler=self.val_sampler,
-            num_workers=self.hparams.num_workers
+            num_workers=self.hparams.num_workers  # type: ignore
         )
 
     def test_dataloader(self) -> DataLoader:

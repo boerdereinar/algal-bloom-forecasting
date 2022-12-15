@@ -6,7 +6,7 @@ from typing import List, Iterable, Tuple
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
-from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.loggers.wandb import WandbLogger
 
 import edegruyl.datamodules
 import edegruyl.models

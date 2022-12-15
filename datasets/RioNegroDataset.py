@@ -4,6 +4,7 @@ from typing import Dict, Any
 
 import torch
 from torchgeo.datasets import GeoDataset, BoundingBox
+from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from edegruyl.datasets import BiologicalDataset
@@ -33,7 +34,7 @@ class RioNegroDataset(GeoDataset):
         # Prevent out of range samples
         dt = timedelta(days=window_size + prediction_horizon).total_seconds()
         roi = self.biological_unprocessed.bounds & self.biological_processed.bounds
-        self.roi = BoundingBox(*roi[:4], roi.mint + dt, roi.maxt)
+        self.roi = BoundingBox(roi.minx, roi.maxx, roi.miny, roi.maxy, roi.mint + dt, roi.maxt)
 
     def load_datasets(self, root: str, reservoir: str):
         print("Loading datasets...")
@@ -50,7 +51,7 @@ class RioNegroDataset(GeoDataset):
         pbar.set_description("Loading processed biological dataset")
         self.biological_processed = BiologicalDataset(
             os.path.join(root, "biological_processed", reservoir),
-            transforms=self.normalize
+            transforms=Compose([self.clip, self.normalize])
         )
         pbar.update(1)
 
@@ -63,7 +64,9 @@ class RioNegroDataset(GeoDataset):
         samples = []
         for i in reversed(range(self.window_size)):
             dt = timedelta(days=self.prediction_horizon + i)
-            bbox = BoundingBox(*query[:4], (mint - dt).timestamp(), (maxt - dt).timestamp())
+            t0 = (mint - dt).timestamp()
+            t1 = (maxt - dt).timestamp()
+            bbox = BoundingBox(query.minx, query.maxx, query.miny, query.maxy, t0, t1)
             samples.append(self.biological_processed[bbox]["image"])
 
         return {"images": torch.stack(samples), "ground_truth": ground_truth}

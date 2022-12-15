@@ -7,7 +7,7 @@ from collections import deque, defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
-from typing import Any, Tuple, List
+from typing import Any, Optional, Tuple, List
 
 import numpy as np
 import rasterio
@@ -43,7 +43,7 @@ class InterpolatePreprocessor(Preprocessor):
             source_dir: str,
             target_dir: str,
             interpolation_strategy: InterpolationStrategy,
-            num_workers: int = None,
+            num_workers: Optional[int] = None,
             **kwargs: Any
     ) -> None:
         super().__init__(source_dir, target_dir)
@@ -108,7 +108,7 @@ class InterpolatePreprocessor(Preprocessor):
             with rasterio.open(file.file) as src:
                 data = src.read()
 
-                if data_prev is None:
+                if data_prev is None or t_prev is None:
                     pbar.set_postfix({"date": file.date.strftime(self.date_format)})
                     # Handle first file in the reservoir
                     self.strategy.first(data)

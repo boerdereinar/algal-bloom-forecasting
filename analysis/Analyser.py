@@ -1,7 +1,7 @@
 import os.path
 from argparse import ArgumentParser
 from datetime import datetime
-from typing import Sequence, Tuple, Dict, Any
+from typing import Optional, Sequence, Tuple, Dict, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,7 +47,7 @@ class Analyser:
             root: str,
             reservoir: str,
             land_cover: str,
-            save_dir: str = None,
+            save_dir: Optional[str] = None,
             save_plots: bool = False,
             exclude_titles: bool = False,
             **kwargs: Any
@@ -107,8 +107,8 @@ class Analyser:
         `hists`, `thresh`, `thresh_stats`, and `thresh_hists` attributes.
         """
         intersections = list(self.dataset.index.intersection(self.dataset.index.bounds, objects=True))
-        data: np.ndarray = Parallel(8)(delayed(self._load_file)(item.object) for item in tqdm(intersections))
-        data = np.stack(data, axis=1)
+        data = Parallel(8)(delayed(self._load_file)(item.object) for item in tqdm(intersections))
+        data = np.stack(data, axis=1)  # type: ignore
         data = data[:, :, self.water_coverage]
 
         self.total_samples = data.shape[1]
@@ -185,14 +185,16 @@ class Analyser:
             ax.set_facecolor("#E9F6D0")
             ax.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
-            if self.save_plots:
+            if self.save_plots and self.save_dir:
                 plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_{band}_hist.png"))
             plt.show()
 
     def plot_sparsity(self):
         """Plots the temporal and spatial sparsity of the dataset using Matplotlib."""
-        dates = sorted(datetime.fromtimestamp(item.bounds[4]).replace(hour=0, minute=0, second=0, microsecond=0)
-                       for item in self.dataset.index.intersection(self.dataset.index.bounds, True))
+        dates = sorted(
+            datetime.fromtimestamp(item.bounds[4]).replace(hour=0, minute=0, second=0, microsecond=0)  # type: ignore
+            for item in self.dataset.index.intersection(self.dataset.index.bounds, True)
+        )
 
         # Plot temporal sparsity
         dt = [(d2 - d1).days for d1, d2 in zip(dates, dates[1:])]
@@ -205,7 +207,7 @@ class Analyser:
         plt.bar(range(len(binned_dt)), binned_dt, color="#496F0B")
         plt.gca().set_facecolor("#E9F6D0")
 
-        if self.save_plots:
+        if self.save_plots and self.save_dir:
             plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_days_between_samples.png"))
         plt.show()
 
@@ -223,7 +225,7 @@ class Analyser:
             plt.gca().set_xticks([])
             plt.gca().set_yticks([])
             plt.colorbar()
-            if self.save_plots:
+            if self.save_plots and self.save_dir:
                 path = os.path.join(self.save_dir, f"{self.reservoir}_{band}_missing_spatial_samples.png")
                 plt.savefig(path, transparent=True)
             plt.show()

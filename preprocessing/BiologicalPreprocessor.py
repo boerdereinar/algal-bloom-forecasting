@@ -3,7 +3,7 @@ import os
 import re
 from argparse import ArgumentParser
 from collections import defaultdict
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import rasterio
@@ -23,7 +23,7 @@ class BiologicalPreprocessor(Preprocessor):
                                 r".*_(?P<season>[A-Za-z]+_\d{4})\.tif$")
     description_regex = re.compile(r"^.*_(?P<date>\d{8}T\d{6})_\d{8}T\d{6}.*$")
 
-    def __init__(self, source_dir: str, target_dir: str, num_workers: int = None):
+    def __init__(self, source_dir: str, target_dir: str, num_workers: Optional[int] = None):
         """
         Initialize the biological processor.
 
@@ -80,11 +80,16 @@ class BiologicalPreprocessor(Preprocessor):
         # Loop through all bands
         for i in range(datasets[0].count):
             # Get the date from the band description
-            date = self.description_regex.match(datasets[0].descriptions[i]).group("date")
+            match = self.description_regex.match(datasets[0].descriptions[i])
+            if match is None:
+                continue
+
+            date = match.group("date")
 
             # Start writing to the file
             target_file = os.path.join(target_dir, f"{reservoir.lower()}_{date}_biological.tif")
-            with rasterio.open(target_file, "w", **profile) as writer:  # type: DatasetWriter
+            writer: DatasetWriter
+            with rasterio.open(target_file, "w", **profile) as writer:
                 for j, ds in enumerate(datasets):
                     # Read the data in the band
                     data = ds.read(i + 1).astype(np.float32)

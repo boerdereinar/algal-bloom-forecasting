@@ -1,6 +1,6 @@
 import os
 from argparse import ArgumentParser
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import torch
@@ -21,7 +21,7 @@ class UNetModel(LightningModule):
             num_bands: int,
             size: int,
             learning_rate: float = 1e-4,
-            save_dir: str = None,
+            save_dir: Optional[str] = None,
             **kwargs: Any
     ) -> None:
         """
@@ -60,7 +60,7 @@ class UNetModel(LightningModule):
         return self.model(x)
 
     def configure_optimizers(self) -> Optimizer:
-        return Adam(self.parameters(), lr=self.hparams.learning_rate)
+        return Adam(self.parameters(), lr=self.hparams.learning_rate)  # type: ignore
 
     def _preprocess_batch(self, batch: Dict[str, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
         """Preprocess the given batch of data.
@@ -133,15 +133,16 @@ class UNetModel(LightningModule):
 
         return squared_error
 
-    def test_epoch_end(self, outputs) -> None:
-        outputs = torch.cat(outputs)[:, 0]
+    def test_epoch_end(self, outputs: Union[Tensor, List[Tensor]]) -> None:
+        if isinstance(outputs, List):
+            outputs = torch.cat(outputs)[:, 0]
         mse = torch.nanmean(outputs, 0)
 
         plt.figure(figsize=(8, 4))
         plt.title("MSE loss")
         plt.imshow(mse.cpu(), norm=LogNorm(), cmap="jet")
         plt.colorbar()
-        if self.hparams.save_dir:
-            path = os.path.join(self.hparams.save_dir, "mse_loss_validation.png")
+        if self.hparams.save_dir:  # type: ignore
+            path = os.path.join(self.hparams.save_dir, "mse_loss_validation.png")  # type: ignore
             plt.savefig(path, transparent=True)
         plt.show()

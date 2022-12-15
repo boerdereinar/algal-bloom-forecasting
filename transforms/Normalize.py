@@ -34,7 +34,7 @@ class Normalize:
         for key, value in x.items():
             if isinstance(value, Tensor):
                 max_reshaped = self.max[:, None, None]
-                data[key] = torch.minimum(value, max_reshaped) / max_reshaped
+                data[key] = value / max_reshaped
             else:
                 data[key] = value
 

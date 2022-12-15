@@ -39,7 +39,7 @@ class LinearModel(LightningModule):
         return self.fc(x)
 
     def configure_optimizers(self) -> Optimizer:
-        return Adam(self.parameters(), lr=self.hparams.learning_rate)
+        return Adam(self.parameters(), lr=self.hparams.learning_rate)  # type: ignore
 
     def _compute_loss(self, batch: Dict[str, Tensor]) -> Tensor:
         """Computes the loss for a given batch of data.
