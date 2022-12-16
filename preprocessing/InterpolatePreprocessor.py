@@ -12,11 +12,12 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 
 from edegruyl.preprocessing import Preprocessor
-from edegruyl.preprocessing.strategies import Strategy, LookBackStrategy
+from edegruyl.preprocessing.strategies import Strategy, LookBackStrategy, LinearStrategy
 
 
 class InterpolationStrategy(Enum):
-    LookBack = "Use the last known sample to fill in missing samples."
+    LookBack = "Use the last known samples to fill in missing samples."
+    Linear = "Use linear interpolation to fill in missing samples."
 
     def __str__(self):
         return self.name
@@ -67,6 +68,8 @@ class InterpolatePreprocessor(Preprocessor):
         match self.interpolation_strategy:
             case InterpolationStrategy.LookBack:
                 return LookBackStrategy(**self.kwargs)
+            case InterpolationStrategy.Linear:
+                return LinearStrategy(**self.kwargs)
 
     def preprocess(self) -> None:
         """Preprocess the datasets."""
@@ -80,9 +83,6 @@ class InterpolatePreprocessor(Preprocessor):
                     datetime.strptime(match["date"], self.date_format)
                 ))
 
-        for k, v in reservoirs.items():
-            reservoirs[k] = sorted(v, key=lambda x: x.date)
-
         Parallel(self.num_workers)(
             delayed(self._preprocess_reservoir)(item, i) for i, item in enumerate(reservoirs.items())
         )
@@ -93,8 +93,8 @@ class InterpolatePreprocessor(Preprocessor):
 
         pbar = tqdm(
             total=(files[-1].date - files[0].date).days + 1,
-            desc=reservoir.capitalize(),
-            unit="day",
+            desc=f"{reservoir.capitalize():20}",
+            unit="days",
             position=idx
         )
 
@@ -128,12 +128,13 @@ class InterpolatePreprocessor(Preprocessor):
 
                     for dt, x in enumerate(interpolated_data):
                         t = (t_prev + timedelta(dt + 1))
-                        pbar.set_postfix({"date": t.strftime(self.date_format)})
+                        pbar.set_postfix({"date": t})
                         target_file = target_file_template % t.strftime(self.date_format)
 
                         # Write the interpolated data
                         with rasterio.open(target_file, "w", **src.profile) as target:
-                            target.write(interpolated_data)
+                            target.write(interpolated_data[dt])
+
                         pbar.update(1)
 
                 t_prev = file.date

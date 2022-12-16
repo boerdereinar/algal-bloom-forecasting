@@ -1,6 +1,7 @@
 from collections import deque
 from datetime import datetime
 from functools import reduce
+from itertools import islice
 from typing import Any, Optional, List
 
 import numpy as np
@@ -10,7 +11,7 @@ from edegruyl.preprocessing.strategies import Strategy
 
 class LookBackStrategy(Strategy):
     """Interpolation strategy that uses the last known sample to fill in missing samples."""
-    data: Optional[np.ndarray]
+    data: Optional[np.ndarray] = None
 
     def __init__(self, buffer_size: int = 30, **kwargs: Any):
         """
@@ -35,13 +36,24 @@ class LookBackStrategy(Strategy):
         interpolated = []
 
         for i in range(days):
-            if len(self.buffer) == self.buffer.maxlen and self.buffer[0] is not None:
+            # If the buffer is full
+            # And an existing data point is going to be removed
+            # And the buffer still contains data points
+            # Then reset the combined data
+            if len(self.buffer) == self.buffer.maxlen and self.buffer[0] is not None and \
+               any(x is not None for x in islice(self.buffer, 1, None)):
+                self.data = None
+            # If a data point is going to be inserted, reset the combined data
+            if i == days - 1:
                 self.data = None
 
             self.buffer.append(data_next if i == days - 1 else None)
 
             if self.data is None:
-                self.data = reduce(lambda a, b: np.where(np.isnan(a), b, a), filter(id, reversed(self.buffer)))
+                self.data = reduce(
+                    lambda a, b: np.where(np.isnan(a), b, a),
+                    filter(lambda a: a is not None, reversed(self.buffer))
+                )
 
             interpolated.append(self.data)
 

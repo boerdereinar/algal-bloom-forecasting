@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List
 
 import numpy as np
+from torch import Tensor
 
 
 class Strategy(ABC):
@@ -19,7 +20,7 @@ class Strategy(ABC):
             t_prev: datetime,
             data_next: np.ndarray,
             t_next: datetime
-    ) -> List[np.ndarray]:
+    ) -> List[np.ndarray] | Tensor:
         """
         Interpolate samples in between two other samples.
 

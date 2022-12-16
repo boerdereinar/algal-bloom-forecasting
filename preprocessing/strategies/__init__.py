@@ -1,2 +1,3 @@
 from edegruyl.preprocessing.strategies.Strategy import Strategy
+from edegruyl.preprocessing.strategies.LinearStrategy import LinearStrategy
 from edegruyl.preprocessing.strategies.LookBackStrategy import LookBackStrategy
