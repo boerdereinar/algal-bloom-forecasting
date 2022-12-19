@@ -52,8 +52,8 @@ class RioNegroDataset(GeoDataset):
                 )
             ])
 
-            self.biological_processed = datasets[0]
-            self.biological_unprocessed = datasets[1]
+            self.biological_unprocessed = datasets[0]
+            self.biological_processed = datasets[1]
 
     def load_dataset(self, cls, name):
         return lambda *args, **kwargs: setattr(self, name, cls(*args, **kwargs))
