@@ -1,14 +1,17 @@
 import os.path
 from datetime import timedelta, datetime
+from functools import partial
 from typing import Dict, Any
 
 import torch
+from joblib import Parallel, delayed
 from torchgeo.datasets import GeoDataset, BoundingBox
 from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from edegruyl.datasets import BiologicalDataset
 from edegruyl.transforms import Normalize, Clip
+from edegruyl.utils.tqdmutils import tqdm_joblib
 
 
 class RioNegroDataset(GeoDataset):
@@ -37,23 +40,23 @@ class RioNegroDataset(GeoDataset):
         self.roi = BoundingBox(roi.minx, roi.maxx, roi.miny, roi.maxy, roi.mint + dt, roi.maxt)
 
     def load_datasets(self, root: str, reservoir: str):
-        print("Loading datasets...")
+        with tqdm_joblib(tqdm(desc="Loading datasets", total=2)):
+            datasets = Parallel(4, batch_size=1)([
+                delayed(BiologicalDataset)(
+                    os.path.join(root, "biological", reservoir),
+                    transforms=self.clip
+                ),
+                delayed(BiologicalDataset)(
+                    os.path.join(root, "biological_processed", reservoir),
+                    transforms=Compose([self.clip, self.normalize])
+                )
+            ])
 
-        pbar = tqdm(total=2)
+            self.biological_processed = datasets[0]
+            self.biological_unprocessed = datasets[1]
 
-        pbar.set_description("Loading biological dataset")
-        self.biological_unprocessed = BiologicalDataset(
-            os.path.join(root, "biological", reservoir),
-            transforms=self.clip
-        )
-        pbar.update(1)
-
-        pbar.set_description("Loading processed biological dataset")
-        self.biological_processed = BiologicalDataset(
-            os.path.join(root, "biological_processed", reservoir),
-            transforms=Compose([self.clip, self.normalize])
-        )
-        pbar.update(1)
+    def load_dataset(self, cls, name):
+        return lambda *args, **kwargs: setattr(self, name, cls(*args, **kwargs))
 
     def __getitem__(self, query: BoundingBox) -> Dict[str, Any]:
         ground_truth = self.biological_unprocessed[query]["image"][1].unsqueeze(0)

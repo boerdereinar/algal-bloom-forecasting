@@ -1,2 +1,3 @@
 from edegruyl.datasets.BiologicalDataset import BiologicalDataset
+from edegruyl.datasets.LandCoverDataset import LandCoverDataset
 from edegruyl.datasets.RioNegroDataset import RioNegroDataset
