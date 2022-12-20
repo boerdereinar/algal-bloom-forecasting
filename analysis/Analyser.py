@@ -1,7 +1,7 @@
 import os.path
 from argparse import ArgumentParser
 from datetime import datetime
-from typing import Optional, Sequence, Tuple, Dict, Any
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np

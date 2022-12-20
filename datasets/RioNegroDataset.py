@@ -1,16 +1,15 @@
 import os.path
-from datetime import timedelta, datetime
-from functools import partial
-from typing import Dict, Any
+from datetime import datetime, timedelta
+from typing import Any, Dict
 
 import torch
 from joblib import Parallel, delayed
-from torchgeo.datasets import GeoDataset, BoundingBox
+from torchgeo.datasets import BoundingBox, GeoDataset
 from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from edegruyl.datasets import BiologicalDataset
-from edegruyl.transforms import Normalize, Clip
+from edegruyl.transforms import Clip, Normalize
 from edegruyl.utils.tqdmutils import tqdm_joblib
 
 

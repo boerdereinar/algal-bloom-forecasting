@@ -1,8 +1,8 @@
 import inspect
 import os
 import sys
-from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter, RawTextHelpFormatter
-from typing import List, Iterable, Tuple
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace, RawTextHelpFormatter
+from typing import Iterable, List, Tuple
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
@@ -14,7 +14,7 @@ import edegruyl.preprocessing
 from edegruyl.analysis import Analyser
 
 
-# Increase the timeout duration of the _wait_for_ports function from 30 seconds to 100 seconds.
+# Increase the timeout duration of the _wait_for_ports function from 30 seconds to 300 seconds.
 # This patch fixes wandb failing to find ports on a slow cluster.
 if "SLURM_JOB_ID" in os.environ:
     import subprocess

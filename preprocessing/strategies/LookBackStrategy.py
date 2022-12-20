@@ -2,7 +2,7 @@ from collections import deque
 from datetime import datetime
 from functools import reduce
 from itertools import islice
-from typing import Any, Optional, List
+from typing import Any, List, Optional
 
 import numpy as np
 

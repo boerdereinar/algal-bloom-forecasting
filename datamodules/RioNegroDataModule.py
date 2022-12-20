@@ -5,7 +5,7 @@ from typing import Any
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from torchgeo.datasets import BoundingBox
-from torchgeo.samplers import GeoSampler, BatchGeoSampler, GridGeoSampler, RandomBatchGeoSampler, Units
+from torchgeo.samplers import BatchGeoSampler, GeoSampler, GridGeoSampler, RandomBatchGeoSampler, Units
 
 from edegruyl.datasets import RioNegroDataset
 

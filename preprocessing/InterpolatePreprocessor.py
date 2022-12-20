@@ -5,14 +5,14 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Optional, Tuple, List
+from typing import Any, List, Optional, Tuple
 
 import rasterio
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
 from edegruyl.preprocessing import Preprocessor
-from edegruyl.preprocessing.strategies import Strategy, LookBackStrategy, LinearStrategy
+from edegruyl.preprocessing.strategies import LinearStrategy, LookBackStrategy, Strategy
 
 
 class InterpolationStrategy(Enum):
