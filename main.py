@@ -14,6 +14,18 @@ import edegruyl.preprocessing
 from edegruyl.analysis import Analyser
 
 
+# Increase the timeout duration of the _wait_for_ports function from 30 seconds to 100 seconds.
+# This patch fixes wandb failing to find ports on a slow cluster.
+if "SLURM_JOB_ID" in os.environ:
+    import subprocess
+    import wandb.sdk.service.service
+
+    def _wait_for_ports(self: wandb.sdk.service.service._Service, fname: str, proc: subprocess.Popen = None) -> bool:
+        return any(self._wait_for_ports(fname, proc) for _ in range(10))
+    
+    wandb.sdk.service.service._Service._wait_for_ports = _wait_for_ports
+
+
 def analyse(args: Namespace, unknown_args: List[str]) -> None:
     """Runs the analyzer.
 
