@@ -17,7 +17,3 @@ class LandCoverDataset(RasterDataset):
         "Bare soil/Built-up",
         "Wetlands"
     ]
-
-    def __getitem__(self, query):
-        item = super().__getitem__(query)
-        item["mask"] = item["mask"]

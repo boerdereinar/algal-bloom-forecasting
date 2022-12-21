@@ -29,10 +29,9 @@ class RioNegroDataset(GeoDataset):
         self.load_datasets(root, reservoir)
 
         # Update index
+        self.res = self.biological_unprocessed.res
+        self._crs = self.biological_unprocessed.crs
         self.index = self.biological_unprocessed.index
-
-        # Description of bands
-        self.all_bands = self.biological_unprocessed.all_bands
 
         # Prevent out of range samples
         dt = timedelta(days=window_size + prediction_horizon).total_seconds()
