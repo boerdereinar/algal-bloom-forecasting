@@ -24,7 +24,7 @@ train UNet RioNegro \
 --root /scratch/${USER}/algal-bloom/data \
 --reservoir palmar \
 --window-size 5 \
---prediction-horizon 5 \
+--prediction-horizon 1 \
 --size 256 \
 --batch-size 10 \
 --length 5000 \
