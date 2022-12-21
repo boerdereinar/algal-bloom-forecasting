@@ -32,4 +32,5 @@ train UNet RioNegro \
 --default_root_dir /scratch/${USER}/algal-bloom/checkpoints \
 --accelerator gpu \
 --devices 1 \
---max_epochs 30
+--max_epochs 30 \
+--log_every_n_steps 1
