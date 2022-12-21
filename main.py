@@ -22,9 +22,9 @@ if "SLURM_JOB_ID" in os.environ:
 
     def _wait_for_ports_decorator(original_method):
         def _wait_for_ports(self, fname: str, proc: subprocess.Popen = None) -> bool:
-            return any(original_method(fname, proc) for _ in range(10))
+            return any(original_method(self, fname, proc) for _ in range(10))
         return _wait_for_ports
-    
+
     wandb.sdk.service.service._Service._wait_for_ports = \
         _wait_for_ports_decorator(wandb.sdk.service.service._Service._wait_for_ports)
 
