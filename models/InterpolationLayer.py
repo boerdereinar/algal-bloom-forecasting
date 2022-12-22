@@ -3,6 +3,17 @@ from torch import Tensor, nn
 
 
 class InterpolationNetwork(nn.Module):
+    """
+    A neural network that interpolates between observed and reference points.
+
+    Parameters:
+        num_features (int): The number of features in the input data.
+        observed_points (int): The number of observed points.
+        reference_points (int): The number of reference points.
+        reconstruction (bool, optional): Flag indicating whether the network is used for reconstruction.
+            If set to True, the output will only be the interpolated points, whereas if set to False,
+            the output will also include the transformed points. Default: False.
+    """
     def __init__(
             self,
             num_features,
@@ -15,15 +26,40 @@ class InterpolationNetwork(nn.Module):
         self.interpolation = nn.Sequential(
             SingleChannelInterpolation(observed_points, reference_points, reconstruction),
             nn.Sigmoid(),
-            CrossChannelInterpolation(num_features, reference_points, reconstruction),
+            CrossChannelInterpolation(num_features, observed_points, reference_points, reconstruction),
             nn.Sigmoid()
         )
 
     def forward(self, x: Tensor) -> Tensor:
+        """
+        Interpolate the input data.
+
+        Parameters:
+            x (Tensor): The input data with shape (3, batch_size, num_features, observed_points) where:
+                x[0] is the data with missing values.
+                x[1] is the timestamps corresponding to each value in x[0].
+                x[2] is the mask of all observed values where 1 denotes an observed value and 0 denotes a missing value.
+
+        Returns:
+            Tensor: The interpolated points. If reconstruction is set to True,
+                the output will have shape (batch_size, num_features, reference_points).
+                Otherwise, the output will have shape (3, batch_size, num_features, reference_points).
+        """
         return self.interpolation(x)
 
 
 class SingleChannelInterpolation(nn.Module):
+    """
+    A neural network layer that interpolates between observed and reference points for a single channel.
+
+    Parameters:
+        observed_points (int): The number of observed points.
+        reference_points (int): The number of reference points.
+        reconstruction (bool, optional): Flag indicating whether the network is used for reconstruction.
+            If set to True, the output will only be the interpolated points, whereas if set to False,
+            the output will also include the transformed points. Default: False.
+        kappa (float, optional): A hyperparameter that controls the strength of the transformation. Default: 10.
+    """
     def __init__(
             self,
             observed_points: int,
@@ -40,9 +76,9 @@ class SingleChannelInterpolation(nn.Module):
         self.kernel = nn.Parameter(torch.zeros((self.observed_points,)))
 
     def forward(self, x: Tensor) -> Tensor:
-        x_t = x[:, 0]
-        d = x[:, 1]
-        m = x[:, 2]
+        x_t = x[0]
+        d = x[1]
+        m = x[2]
 
         if self.reconstruction:
             output_dim = self.observed_points
@@ -63,34 +99,47 @@ class SingleChannelInterpolation(nn.Module):
         y = torch.einsum("ijkl,ijkl->ijl", w1, x_t)
 
         if self.reconstruction:
-            return torch.stack((y, w), dim=1)
+            return torch.stack((y, w))
 
         w_t = torch.logsumexp(-self.kappa * alpha * norm + torch.log(m), dim=2)
         w_t = w_t.unsqueeze(2).expand(-1, -1, self.observed_points, -1)
         w_t = torch.exp(-self.kappa * alpha * norm + torch.log(m) - w_t)
         y_trans = torch.einsum("ijkl,ijkl->ijl", w_t, x_t)
-        return torch.stack((y, w, y_trans), dim=1)
+        return torch.stack((y, w, y_trans))
 
 
 class CrossChannelInterpolation(nn.Module):
+    """
+    A neural network layer that interpolates between observed and reference points for multiple channels.
+
+    Parameters:
+        num_features (int): The number of features in the input data.
+        observed_points (int): The number of observed points.
+        reference_points (int): The number of reference points.
+        reconstruction (bool, optional): Flag indicating whether the network is used for reconstruction.
+            If set to True, the output will only be the interpolated points, whereas if set to False,
+            the output will also include the transformed points. Default: False.
+    """
     def __init__(
             self,
             num_features: int,
+            observed_points: int,
             reference_points: int,
             reconstruction: bool = False
     ) -> None:
         super().__init__()
 
         self.num_features = num_features
-        self.reference_points = reference_points
+        self.output_dim = observed_points if reconstruction else reference_points
         self.reconstruction = reconstruction
         self.cross_channel_interpolation = nn.Parameter(torch.eye(self.num_features))
 
     def forward(self, x: Tensor) -> Tensor:
-        y = x[:, 0]
-        w = x[:, 1]
+        y = x[0]
+        w = x[1]
 
         intensity = torch.exp(w)
+
         y = y.permute(0, 2, 1)
         w = w.permute(0, 2, 1)
         w2 = w
@@ -98,13 +147,13 @@ class CrossChannelInterpolation(nn.Module):
         den = w.logsumexp(dim=2)
         w = torch.exp(w2 - den)
         mean = y.mean(dim=1)
-        mean = mean[:, None, :].expand(-1, self.reference_points, -1)
+        mean = mean[:, None, :].expand(-1, self.output_dim, -1)
         w2 = (w * (y - mean)) @ self.cross_channel_interpolation + mean
         rep1 = w2.permute(0, 2, 1)
 
         if self.reconstruction:
             return rep1
 
-        y_trans = x[:, 2]
+        y_trans = x[2]
         y_trans = y_trans - rep1
-        return torch.stack((rep1, intensity, y_trans), dim=1)
+        return torch.stack((rep1, intensity, y_trans))
