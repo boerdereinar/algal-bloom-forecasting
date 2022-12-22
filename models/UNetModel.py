@@ -77,7 +77,7 @@ class UNetModel(LightningModule):
         return {
             "optimizer": optimizer,
             "lr_scheduler": scheduler,
-            "monitor": "loss"
+            "monitor": "val_loss"
         }
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
