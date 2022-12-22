@@ -101,13 +101,6 @@ class RioNegroDataModule(LightningDataModule):
     def setup(self, stage: str) -> None:
         """Sets up the data module, preparing it for use.
 
-        This method is called by the PyTorch Lightning framework to set up the
-        data module and prepare it for use. It creates an instance of the
-        `RioNegroDataset` class, which represents the dataset that this data module
-        will load and prepare data from. It also creates instances of the
-        `RandomBatchGeoSampler` and `GridGeoSampler` classes, which are used to
-        sample data for training and validation, respectively.
-
         Args:
             stage: The stage of the training process that this data module is being
                 set up for. This can be one of "fit", "test", or "predict".
@@ -142,33 +135,20 @@ class RioNegroDataModule(LightningDataModule):
         )
 
     def train_dataloader(self) -> DataLoader:
-        """Returns a PyTorch `DataLoader` instance for the training set.
-
-        Returns:
-            A PyTorch `DataLoader` instance for the training set.
-        """
         return DataLoader(
             self.dataset,
             batch_sampler=self.train_sampler,
+            pin_memory=True,
             num_workers=self.hparams.num_workers  # type: ignore
         )
 
     def val_dataloader(self) -> DataLoader:
-        """Returns a PyTorch `DataLoader` instance for the validation set.
-
-        Returns:
-            A PyTorch `DataLoader` instance for the validation set.
-        """
         return DataLoader(
             self.dataset,
             sampler=self.val_sampler,
+            pin_memory=True,
             num_workers=self.hparams.num_workers  # type: ignore
         )
 
     def test_dataloader(self) -> DataLoader:
-        """Returns a PyTorch `DataLoader` instance for the test set.
-
-        Returns:
-            A PyTorch `DataLoader` instance for the test set.
-        """
         return self.val_dataloader()

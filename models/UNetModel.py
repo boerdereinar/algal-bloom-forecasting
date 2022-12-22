@@ -8,7 +8,8 @@ from matplotlib.colors import LogNorm
 from pytorch_lightning import LightningModule
 from torch import Tensor
 from torch.nn.functional import mse_loss
-from torch.optim import Adam, Optimizer
+from torch.optim import SGD
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from edegruyl.models import UNet
 
@@ -21,6 +22,7 @@ class UNetModel(LightningModule):
             num_bands: int,
             size: int,
             learning_rate: float = 1e-4,
+            momentum: float = 0.9,
             save_dir: Optional[str] = None,
             **kwargs: Any
     ) -> None:
@@ -31,7 +33,9 @@ class UNetModel(LightningModule):
             window_size (int): The size of the window that the classifier will use to look at the input data.
             num_bands (int): The number of bands (i.e. channels) in the input data.
             size (int): The size of the image that the classifier will be trained on.
-            learning_rate (float): The learning rate to use for training.
+            learning_rate (float): The learning rate of the optimizer.
+            momentum (float): The momentum of the optimizer.
+            save_dir (str): The save directory for the output of the test run.
             **kwargs:
         """
         super().__init__()
@@ -43,7 +47,9 @@ class UNetModel(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("Model")
-        parser.add_argument("-lr", "--learning-rate", type=float, help="The learning rate of the model.", default=1e-4)
+        parser.add_argument("-lr", "--learning-rate", type=float, help="The learning rate of the optimizer.",
+                            default=1e-4)
+        parser.add_argument("--momentum", type=float, help="The momentum of the optimizer.", default=0.9)
         parser.add_argument("--save-dir", type=str, help="The save directory for the plots.", default=None)
         return parent_parser
 
@@ -59,8 +65,19 @@ class UNetModel(LightningModule):
         x = torch.flatten(x, 1, 2)
         return self.model(x)
 
-    def configure_optimizers(self) -> Optimizer:
-        return Adam(self.parameters(), lr=self.hparams.learning_rate)  # type: ignore
+    def configure_optimizers(self) -> Dict[str, Any]:
+        optimizer = SGD(
+            self.parameters(),
+            lr=self.hparams.learning_rate,
+            momentum=self.hparams.momentum
+        )
+        scheduler = ReduceLROnPlateau(optimizer, "min")
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler,
+            "monitor": "loss"
+        }
 
     def _preprocess_batch(self, batch: Dict[str, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
         """Preprocess the given batch of data.
@@ -84,18 +101,6 @@ class UNetModel(LightningModule):
         return x, y, mask
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        """Computes the loss for a training batch.
-
-        This method is called on each training batch during the training process. It computes the loss
-        for the batch using the `_compute_loss` method and then logs the loss.
-
-        Args:
-            train_batch (Dict[str, Tensor]): A dictionary of tensors containing the training batch data.
-            batch_idx (int): The index of the training batch.
-
-        Returns:
-            Tensor: The loss for the training batch.
-        """
         x, y, mask = self._preprocess_batch(train_batch)
         y_hat = self(x)
         loss = mse_loss(y_hat[mask], y[mask]).nan_to_num()
@@ -104,18 +109,6 @@ class UNetModel(LightningModule):
         return loss
 
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        """Computes the loss for a validation batch.
-
-        This method is called on each validation batch during the training process. It computes the loss
-        for the batch using the `_compute_loss` method and then logs the loss.
-
-        Args:
-            val_batch (Dict[str, Tensor]): A dictionary of tensors containing the validation batch data.
-            batch_idx (int): The index of the validation batch.
-
-        Returns:
-            Tensor: The loss for the validation batch.
-        """
         x, y, mask = self._preprocess_batch(val_batch)
         y_hat = self(x)
         loss = mse_loss(y_hat[mask], y[mask]).nan_to_num()

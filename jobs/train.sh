@@ -6,7 +6,7 @@
 #SBATCH --time=4:00:00
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-task=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --output="out/slurm-%j.out"
 #SBATCH --signal=SIGUSR1@90
@@ -28,9 +28,8 @@ train UNet RioNegro \
 --size 256 \
 --batch-size 10 \
 --length 5000 \
---num-workers 16 \
+--num-workers 8 \
 --default_root_dir /scratch/${USER}/algal-bloom/checkpoints \
 --accelerator gpu \
 --devices 1 \
---max_epochs 30 \
---log_every_n_steps 1
+--max_epochs 10
