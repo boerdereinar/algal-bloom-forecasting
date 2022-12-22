@@ -12,6 +12,7 @@ from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from edegruyl.models import UNet
+from edegruyl.utils.modelutils import extract_batch
 
 
 class UNetModel(LightningModule):
@@ -79,50 +80,29 @@ class UNetModel(LightningModule):
             "monitor": "loss"
         }
 
-    def _preprocess_batch(self, batch: Dict[str, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
-        """Preprocess the given batch of data.
-
-        Args:
-            batch: A dictionary of tensors containing the images and ground truth labels.
-
-        Returns:
-            A tuple of the input tensor, the predicted tensor and the mask for all valid labels.
-        """
-        x = batch["images"]
-        y = batch["ground_truth"]
-
-        # Mask for output NaN's
-        mask = ~y.isnan()
-
-        # Remove NaN's from the input and output tensors
-        x = x.nan_to_num()
-        y = y.nan_to_num()
-
-        return x, y, mask
-
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, mask = self._preprocess_batch(train_batch)
+        x, y, _, observed = extract_batch(train_batch)
         y_hat = self(x)
-        loss = mse_loss(y_hat[mask], y[mask]).nan_to_num()
+        loss = mse_loss(y_hat[observed], y[observed]).nan_to_num()
 
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, mask = self._preprocess_batch(val_batch)
+        x, y, _, observed = extract_batch(val_batch)
         y_hat = self(x)
-        loss = mse_loss(y_hat[mask], y[mask]).nan_to_num()
+        loss = mse_loss(y_hat[observed], y[observed]).nan_to_num()
 
         self.log("val_loss", loss)
         return loss
 
     def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, mask = self._preprocess_batch(test_batch)
+        x, y, _, observed = extract_batch(test_batch)
         y_hat = self(x)
 
         squared_error = torch.empty_like(y)
         squared_error[:] = torch.nan
-        squared_error[torch.where(mask)] = (y[mask] - y_hat[mask]) ** 2
+        squared_error[torch.where(observed)] = (y[observed] - y_hat[observed]) ** 2
 
         return squared_error
 
