@@ -27,9 +27,9 @@ train UNet RioNegro \
 --prediction-horizon 1 \
 --size 256 \
 --batch-size 10 \
---length 5000 \
+--length 1000 \
 --num-workers 8 \
 --default_root_dir /scratch/${USER}/algal-bloom/checkpoints \
 --accelerator gpu \
 --devices 1 \
---max_epochs 10
+--max_epochs 30

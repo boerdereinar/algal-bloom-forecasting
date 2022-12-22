@@ -24,6 +24,7 @@ class UNetModel(LightningModule):
             size: int,
             learning_rate: float = 1e-4,
             momentum: float = 0.9,
+            patience: int = 3,
             save_dir: Optional[str] = None,
             **kwargs: Any
     ) -> None:
@@ -36,6 +37,7 @@ class UNetModel(LightningModule):
             size (int): The size of the image that the classifier will be trained on.
             learning_rate (float): The learning rate of the optimizer.
             momentum (float): The momentum of the optimizer.
+            patience (int): The number of epochs with no improvement after which learning rate will be reduced.
             save_dir (str): The save directory for the output of the test run.
             **kwargs:
         """
@@ -48,9 +50,10 @@ class UNetModel(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("Model")
-        parser.add_argument("-lr", "--learning-rate", type=float, help="The learning rate of the optimizer.",
-                            default=1e-4)
+        parser.add_argument("--learning-rate", type=float, help="The learning rate of the optimizer.", default=1e-4)
         parser.add_argument("--momentum", type=float, help="The momentum of the optimizer.", default=0.9)
+        parser.add_argument("--patience", type=int, default=3, help="The number of epochs with no improvement after "
+                                                                    "which learning rate will be reduced.")
         parser.add_argument("--save-dir", type=str, help="The save directory for the plots.", default=None)
         return parent_parser
 
@@ -72,7 +75,11 @@ class UNetModel(LightningModule):
             lr=self.hparams.learning_rate,
             momentum=self.hparams.momentum
         )
-        scheduler = ReduceLROnPlateau(optimizer, "min")
+        scheduler = ReduceLROnPlateau(
+            optimizer,
+            "min",
+            patience=self.hparams.patience
+        )
 
         return {
             "optimizer": optimizer,
