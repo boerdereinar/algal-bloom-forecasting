@@ -1,13 +1,13 @@
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from torchgeo.datasets import BoundingBox
 from torchgeo.samplers import BatchGeoSampler, GeoSampler, GridGeoSampler, RandomBatchGeoSampler, Units
 
-from edegruyl.datasets import RioNegroDataset
+from edegruyl.datasets import RioNegroDataset, SingleBatchDataset
 
 
 class RioNegroDataModule(LightningDataModule):
@@ -28,6 +28,7 @@ class RioNegroDataModule(LightningDataModule):
             the sampler that is used to sample data for validation.
     """
     dataset: RioNegroDataset
+    single_batch_dataset: Optional[SingleBatchDataset]
     train_sampler: BatchGeoSampler
     val_sampler: GeoSampler
 
@@ -38,6 +39,7 @@ class RioNegroDataModule(LightningDataModule):
             window_size: int,
             prediction_horizon: int,
             load_processed: bool = True,
+            overfit: bool = False,
             train_test_split: float = 0.8,
             size: int = 256,
             batch_size: int = 1,
@@ -53,6 +55,7 @@ class RioNegroDataModule(LightningDataModule):
             window_size: The window size to use when sampling data.
             prediction_horizon: The prediction horizon to use when sampling data.
             load_processed: Whether to load the processed data in the dataset. The default value is True.
+            overfit: Whether to overfit on a single batch of data. The default value is False.
             train_test_split: The ratio between the number of training and test samples. The default value is 0.8,
                 meaning that 80% of the data will be used for training and 20% for testing.
             size: The size of the patches of data that will be sampled. The default value is 256.
@@ -89,6 +92,7 @@ class RioNegroDataModule(LightningDataModule):
         parser.add_argument("--prediction-horizon", type=int, help="The prediction horizon.", required=True)
         parser.add_argument("--exclude-processed", dest="load_processed", action="store_false",
                             help="Whether to exclude the processed data from the dataset.")
+        parser.add_argument("--overfit", action="store_true", help="Whether to overfit on a single batch of data.")
         parser.add_argument("--train-test-split", type=float, default=0.8,
                             help="The ratio between the number of training and test samples.")
         parser.add_argument("--size", type=int, help="The size of the sampled patches in pixels.", default=256)
@@ -133,7 +137,21 @@ class RioNegroDataModule(LightningDataModule):
             units=Units.CRS
         )
 
+        # If overfitting on a single batch
+        if self.hparams.overfit:
+            loader = DataLoader(
+                self.dataset,
+                batch_sampler=self.train_sampler,
+                pin_memory=True,
+                num_workers=self.hparams.num_workers  # type: ignore
+            )
+
+            self.single_batch_dataset = SingleBatchDataset(loader, self.hparams.length)
+
     def train_dataloader(self) -> DataLoader:
+        if self.hparams.overfit:
+            return DataLoader(self.single_batch_dataset, collate_fn=lambda x: x[0])
+
         return DataLoader(
             self.dataset,
             batch_sampler=self.train_sampler,
@@ -142,6 +160,9 @@ class RioNegroDataModule(LightningDataModule):
         )
 
     def val_dataloader(self) -> DataLoader:
+        if self.hparams.overfit:
+            return DataLoader(self.single_batch_dataset, sampler=[0], collate_fn=lambda x: x[0])
+
         return DataLoader(
             self.dataset,
             sampler=self.val_sampler,
