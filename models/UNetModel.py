@@ -1,6 +1,6 @@
 import os
 from argparse import ArgumentParser
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
 import torch
@@ -98,7 +98,7 @@ class UNetModel(LightningModule):
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(val_batch)
         y_hat = self(x)
-        loss = mse_loss(y_hat[observed], y[observed]).nan_to_num()
+        loss = mse_loss(y_hat[observed], y[observed]).nan_to_num().sqrt()
 
         self.log("val_loss", loss)
         return loss
@@ -116,11 +116,11 @@ class UNetModel(LightningModule):
     def test_epoch_end(self, outputs: Union[Tensor, List[Tensor]]) -> None:
         if isinstance(outputs, List):
             outputs = torch.cat(outputs)[:, 0]
-        mse = torch.nanmean(outputs, 0)
+        rmse = torch.nanmean(outputs, 0).sqrt()
 
         plt.figure(figsize=(8, 4))
         plt.title("MSE loss")
-        plt.imshow(mse.cpu(), norm=LogNorm(), cmap="jet")
+        plt.imshow(rmse.cpu(), norm=LogNorm(), cmap="jet")
         plt.colorbar()
         if self.hparams.save_dir:  # type: ignore
             path = os.path.join(self.hparams.save_dir, "mse_loss_validation.png")  # type: ignore

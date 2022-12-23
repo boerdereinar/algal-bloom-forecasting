@@ -37,6 +37,7 @@ class RioNegroDataModule(LightningDataModule):
             reservoir: str,
             window_size: int,
             prediction_horizon: int,
+            load_processed: bool = True,
             train_test_split: float = 0.8,
             size: int = 256,
             batch_size: int = 1,
@@ -51,17 +52,13 @@ class RioNegroDataModule(LightningDataModule):
             reservoir: The specific reservoir of data to load.
             window_size: The window size to use when sampling data.
             prediction_horizon: The prediction horizon to use when sampling data.
-            train_test_split: The ratio between the number of training and test
-                samples. The default value is 0.8, meaning that 80% of the data
-                will be used for training and 20% for testing.
-            size: The size of the patches of data that will be sampled. The
-                default value is 256.
-            batch_size: The size of the batches that will be sampled. The
-                default value is 1.
-            length: The number of samples that will be generated per epoch.
-                The default value is 1000.
-            num_workers: The number of workers to use for parallel data loading.
-                The default value is 0.
+            load_processed: Whether to load the processed data in the dataset. The default value is True.
+            train_test_split: The ratio between the number of training and test samples. The default value is 0.8,
+                meaning that 80% of the data will be used for training and 20% for testing.
+            size: The size of the patches of data that will be sampled. The default value is 256.
+            batch_size: The size of the batches that will be sampled. The default value is 1.
+            length: The number of samples that will be generated per epoch. The default value is 1000.
+            num_workers: The number of workers to use for parallel data loading. The default value is 0.
             kwargs: Additional keyword arguments.
         """
         super().__init__()
@@ -89,13 +86,15 @@ class RioNegroDataModule(LightningDataModule):
         parser.add_argument("--root", type=str, help="The root directory.", required=True)
         parser.add_argument("--reservoir", type=str, help="The reservoir to train for.", required=True)
         parser.add_argument("--window-size", type=int, help="The window size.", required=True)
-        parser.add_argument("--prediction-horizon", type=int, help="The prediction horizon", required=True)
+        parser.add_argument("--prediction-horizon", type=int, help="The prediction horizon.", required=True)
+        parser.add_argument("--exclude-processed", dest="load_processed", action="store_false",
+                            help="Whether to exclude the processed data from the dataset.")
         parser.add_argument("--train-test-split", type=float, default=0.8,
                             help="The ratio between the number of training and test samples.")
         parser.add_argument("--size", type=int, help="The size of the sampled patches in pixels.", default=256)
         parser.add_argument("--batch-size", type=int, help="The size of the batches.", default=1)
         parser.add_argument("--length", type=int, help="The number of samples per epoch.", default=1000)
-        parser.add_argument("--num-workers", type=int, help="The number of workers to load the date with", default=0)
+        parser.add_argument("--num-workers", type=int, help="The number of workers to load the date with.", default=0)
         return parent_parser
 
     def setup(self, stage: str) -> None:

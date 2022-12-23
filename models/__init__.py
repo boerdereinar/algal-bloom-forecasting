@@ -1,4 +1,5 @@
-from edegruyl.models.InterpolationLayer import CrossChannelInterpolation, SingleChannelInterpolation
+from edegruyl.models.InterpolationLayer import CrossChannelInterpolation, InterpolationNetwork, \
+    SingleChannelInterpolation
 from edegruyl.models.LinearModel import LinearModel
 from edegruyl.models.UNet import UNet
 from edegruyl.models.UNetModel import UNetModel
