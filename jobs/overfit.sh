@@ -33,4 +33,5 @@ train UNet RioNegro \
 --accelerator gpu \
 --devices 1 \
 --max_epochs 10 \
---overfit
+--overfit \
+--deterministic

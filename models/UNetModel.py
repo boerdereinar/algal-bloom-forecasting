@@ -119,10 +119,10 @@ class UNetModel(LightningModule):
         rmse = torch.nanmean(outputs, 0).sqrt()
 
         plt.figure(figsize=(8, 4))
-        plt.title("MSE loss")
+        plt.title("RMSE loss")
         plt.imshow(rmse.cpu(), norm=LogNorm(), cmap="jet")
         plt.colorbar()
         if self.hparams.save_dir:  # type: ignore
-            path = os.path.join(self.hparams.save_dir, "mse_loss_validation.png")  # type: ignore
+            path = os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
             plt.savefig(path, transparent=True)
         plt.show()
