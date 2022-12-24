@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
+import pytorch_lightning as pl
 import torch
 from matplotlib.colors import LogNorm
 from pytorch_lightning import LightningModule
@@ -25,6 +26,7 @@ class UNetModel(LightningModule):
             learning_rate: float = 1e-4,
             momentum: float = 0.9,
             patience: int = 3,
+            seed: int = 42,
             save_dir: Optional[str] = None,
             **kwargs: Any
     ) -> None:
@@ -38,11 +40,14 @@ class UNetModel(LightningModule):
             learning_rate (float): The learning rate of the optimizer.
             momentum (float): The momentum of the optimizer.
             patience (int): The number of epochs with no improvement after which learning rate will be reduced.
+            seed (int): The seed for the global random state.
             save_dir (str): The save directory for the output of the test run.
             **kwargs:
         """
         super().__init__()
         self.save_hyperparameters(ignore=list(kwargs))
+
+        pl.seed_everything(seed)
 
         in_channels = window_size * num_bands
         self.model = UNet(in_channels, 1)
@@ -54,6 +59,7 @@ class UNetModel(LightningModule):
         parser.add_argument("--momentum", type=float, help="The momentum of the optimizer.", default=0.9)
         parser.add_argument("--patience", type=int, default=3, help="The number of epochs with no improvement after "
                                                                     "which learning rate will be reduced.")
+        parser.add_argument("--seed", type=int, default=42, help="The seed for the global random state.")
         parser.add_argument("--save-dir", type=str, help="The save directory for the plots.", default=None)
         return parent_parser
 
