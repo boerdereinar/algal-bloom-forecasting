@@ -69,7 +69,7 @@ def reshape_output(
     Returns:
         The reshaped interpolated tensor of shape (batch_size, reference_points, 3, num_features, height, width).
     """
-    num_features, reference_points = y[-2:]
+    num_features, reference_points = y.shape[-2:]
 
     if masked:
         y_out = torch.zeros((batch_size, height, width, 3, num_features, reference_points))
@@ -106,7 +106,7 @@ def reshape_reconstructed_output(
     Returns:
         The reshaped reconstructed tensor of shape (batch_size, observed_points, num_features, height, width).
     """
-    num_features, observed_points = y[-2:]
+    num_features, observed_points = y.shape[-2:]
 
     if masked:
         y_out = torch.zeros((batch_size, height, width, num_features, observed_points))
