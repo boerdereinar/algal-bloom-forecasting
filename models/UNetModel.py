@@ -8,7 +8,7 @@ import torch
 from matplotlib.colors import LogNorm
 from pytorch_lightning import LightningModule
 from torch import Tensor
-from torch.nn.functional import mse_loss
+from torch.nn.functional import cross_entropy, mse_loss
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -97,7 +97,7 @@ class UNetModel(LightningModule):
 
     def loss(self, predictions: Tensor, expected: Tensor) -> Tensor:
         if self.hparams.classify:
-            raise NotImplementedError()
+            return cross_entropy(predictions, expected)
 
         return mse_loss(predictions, expected).nan_to_num()
 
@@ -112,7 +112,7 @@ class UNetModel(LightningModule):
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(val_batch)
         y_hat = self(x)
-        loss = mse_loss(y_hat[observed], y[observed]).sqrt()
+        loss = self.loss(y_hat[observed], y[observed])
 
         self.log("val_loss", loss)
         return loss
