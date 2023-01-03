@@ -6,18 +6,17 @@ from torch import Tensor
 class Normalize:
     """
     A class that normalizes tensor values in a dictionary.
-
-    Attributes:
-        max: A tensor containing the maximum value that a tensor can have.
     """
-    def __init__(self, max: Tensor):
+    def __init__(self, mean: Tensor, std: Tensor):
         """
         Initializes the Normalize class.
 
         Args:
-            max: A tensor containing the maximum value that a tensor can have.
+            mean: A tensor containing the means of each channel.
+            std: A tensor containing the standard deviations of each channel.
         """
-        self.max = max
+        self.mean = mean[:, None, None]
+        self.std = std[:, None, None]
 
     def __call__(self, x: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -32,8 +31,7 @@ class Normalize:
         data: Dict[str, Any] = dict()
         for key, value in x.items():
             if isinstance(value, Tensor):
-                max_reshaped = self.max[:, None, None]
-                data[key] = value / max_reshaped
+                data[key] = (value - self.mean) / self.std
             else:
                 data[key] = value
 

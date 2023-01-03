@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from edegruyl.datasets import BiologicalDataset, LandCoverDataset
 from edegruyl.transforms import ClassMask, Clip, Normalize
+from edegruyl.transforms.Bin import Bin
 from edegruyl.utils.tqdmutils import tqdm_joblib
 
 
@@ -18,6 +19,11 @@ class RioNegroDataset(GeoDataset):
     biological_processed: Optional[BiologicalDataset] = None
     water_use: LandCoverDataset
 
+    CLIP = torch.tensor([20, 100, 80])
+    MEAN = torch.tensor([2.68, 19.90, 27.89])
+    STD  = torch.tensor([1.37, 63.00, 12.72])
+    BINS = torch.tensor([0, 20, 50, 80, 100])
+
     def __init__(
             self,
             root: str,
@@ -25,14 +31,19 @@ class RioNegroDataset(GeoDataset):
             window_size: int,
             prediction_horizon: int,
             load_processed: bool = True,
+            classify: bool = False,
             **kwargs: Any
     ) -> None:
         super().__init__()
         self.window_size = window_size
         self.prediction_horizon = prediction_horizon
         self.load_processed = load_processed
-        self.clip = Clip(torch.tensor([20, 150, 100]))
-        self.normalize = Normalize(torch.tensor([20, 150, 100]))
+        self.classify = classify
+
+        # Transforms
+        self.clip = Clip(self.CLIP)
+        self.normalize = Normalize(self.MEAN, self.STD)
+        self.bin = Bin(self.BINS)
         self.water_mask = ClassMask(1)
 
         # Load the datasets
@@ -83,7 +94,13 @@ class RioNegroDataset(GeoDataset):
 
     def __getitem__(self, query: BoundingBox) -> Dict[str, Any]:
         item = self.dataset[query]
+
+        # Get the chlorophyll-a band
         ground_truth = item["image"][1].unsqueeze(0)
+        if self.classify:
+            ground_truth = self.bin(ground_truth)
+
+        # Get the water mask
         water_mask = item["mask"].unsqueeze(0)
 
         mint = datetime.fromtimestamp(query.mint).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -95,11 +112,14 @@ class RioNegroDataset(GeoDataset):
             t0 = (mint - dt).timestamp()
             t1 = (maxt - dt).timestamp()
             bbox = BoundingBox(query.minx, query.maxx, query.miny, query.maxy, t0, t1)
-            if self.biological_processed:
+            if self.load_processed:
+                # Get a preprocessed sample
                 samples.append(self.biological_processed[bbox]["image"])
             elif any(True for _ in self.index.intersection(bbox)):
-                samples.append(self.biological_unprocessed[bbox]["image"])
+                # Get a real sample if it exists and normalize it
+                samples.append(self.normalize(self.biological_unprocessed[bbox])["image"])
             else:
-                samples.append(torch.full_like(item["image"], torch.nan))
+                # Generate a non-existent sample
+                samples.append(torch.tensor([torch.nan]).expand_as(item["image"]))
 
         return {"images": torch.stack(samples), "ground_truth": ground_truth, "water_mask": water_mask}

@@ -13,12 +13,6 @@ from edegruyl.datasets import RioNegroDataset, SingleBatchDataset
 class RioNegroDataModule(LightningDataModule):
     """A PyTorch `DataModule` for loading and preparing data from the Rio Negro dataset.
 
-    This class extends the `DataModule` class from the PyTorch Lightning framework
-    and provides methods for loading and preparing data from the Rio Negro dataset
-    for use in training and evaluating machine learning models. It also provides
-    methods for specifying and parsing command-line arguments that are specific to
-    this dataset.
-
     Attributes:
         dataset: An instance of the `RioNegroDataset` class, representing the
             dataset that this data module loads and prepares data from.
@@ -39,6 +33,7 @@ class RioNegroDataModule(LightningDataModule):
             window_size: int,
             prediction_horizon: int,
             load_processed: bool = True,
+            classify: bool = False,
             overfit: bool = False,
             train_test_split: float = 0.8,
             size: int = 256,
@@ -55,6 +50,7 @@ class RioNegroDataModule(LightningDataModule):
             window_size: The window size to use when sampling data.
             prediction_horizon: The prediction horizon to use when sampling data.
             load_processed: Whether to load the processed data in the dataset. The default value is True.
+            classify: Whether to use classification instead of regression. The default value is False.
             overfit: Whether to overfit on a single batch of data. The default value is False.
             train_test_split: The ratio between the number of training and test samples. The default value is 0.8,
                 meaning that 80% of the data will be used for training and 20% for testing.
@@ -92,6 +88,8 @@ class RioNegroDataModule(LightningDataModule):
         parser.add_argument("--prediction-horizon", type=int, help="The prediction horizon.", required=True)
         parser.add_argument("--exclude-processed", dest="load_processed", action="store_false",
                             help="Whether to exclude the processed data from the dataset.")
+        parser.add_argument("--classify", action="store_true", help="Whether to use classification instead of "
+                                                                    "regression.")
         parser.add_argument("--overfit", action="store_true", help="Whether to overfit on a single batch of data.")
         parser.add_argument("--train-test-split", type=float, default=0.8,
                             help="The ratio between the number of training and test samples.")

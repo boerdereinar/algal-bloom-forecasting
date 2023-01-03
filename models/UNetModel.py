@@ -26,6 +26,7 @@ class UNetModel(LightningModule):
             learning_rate: float = 1e-4,
             momentum: float = 0.9,
             patience: int = 3,
+            classify: bool = False,
             seed: int = 42,
             save_dir: Optional[str] = None,
             **kwargs: Any
@@ -34,14 +35,15 @@ class UNetModel(LightningModule):
         Initialize the UNet-classifier.
 
         Args:
-            window_size (int): The size of the window that the classifier will use to look at the input data.
-            num_bands (int): The number of bands (i.e. channels) in the input data.
-            size (int): The size of the image that the classifier will be trained on.
-            learning_rate (float): The learning rate of the optimizer.
-            momentum (float): The momentum of the optimizer.
-            patience (int): The number of epochs with no improvement after which learning rate will be reduced.
-            seed (int): The seed for the global random state.
-            save_dir (str): The save directory for the output of the test run.
+            window_size: The size of the window that the classifier will use to look at the input data.
+            num_bands: The number of bands (i.e. channels) in the input data.
+            size: The size of the image that the classifier will be trained on.
+            learning_rate: The learning rate of the optimizer.
+            momentum: The momentum of the optimizer.
+            patience: The number of epochs with no improvement after which learning rate will be reduced.
+            classify: Whether to use classification instead of regression.
+            seed: The seed for the global random state.
+            save_dir: The save directory for the output of the test run.
             **kwargs:
         """
         super().__init__()
@@ -67,7 +69,7 @@ class UNetModel(LightningModule):
         """Performs the forward pass of the UNet model.
 
         Args:
-            x (Tensor): The input tensor to the model, of shape (batch_size, window_size, num_bands, size, size).
+            x: The input tensor to the model, of shape (batch_size, window_size, num_bands, size, size).
 
         Returns:
             Tensor: The output of the model, of shape (batch_size, 1, size, size).
@@ -93,10 +95,16 @@ class UNetModel(LightningModule):
             "monitor": "val_loss"
         }
 
+    def loss(self, predictions: Tensor, expected: Tensor) -> Tensor:
+        if self.hparams.classify:
+            raise NotImplementedError()
+
+        return mse_loss(predictions, expected).nan_to_num()
+
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(train_batch)
         y_hat = self(x)
-        loss = mse_loss(y_hat[observed], y[observed]).nan_to_num()
+        loss = self.loss(y_hat[observed], y[observed])
 
         self.log("train_loss", loss)
         return loss
@@ -104,7 +112,7 @@ class UNetModel(LightningModule):
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(val_batch)
         y_hat = self(x)
-        loss = mse_loss(y_hat[observed], y[observed]).nan_to_num().sqrt()
+        loss = mse_loss(y_hat[observed], y[observed]).sqrt()
 
         self.log("val_loss", loss)
         return loss
