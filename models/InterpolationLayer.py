@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor, nn
@@ -142,13 +142,17 @@ class InterpolationNetwork(nn.Module):
 
         self.single_channel = SingleChannelInterpolation(observed_points, reference_points)
         self.cross_channel = CrossChannelInterpolation(num_features, observed_points, reference_points)
-        self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x: Tensor, reconstruction: bool = False):
-        x = self.single_channel(x, reconstruction)
-        x = self.sigmoid(x)
-        x = self.cross_channel(x, reconstruction)
-        x = self.sigmoid(x)
+    def forward(self, x_t: Tensor, d: Tensor, m:Tensor, reconstruction: bool = False) -> Tensor:
+        y, w, y_trans = self.single_channel(x_t, d, m, reconstruction)
+
+        y = torch.sigmoid(y)
+        w = torch.sigmoid(y)
+        if y_trans is not None:
+            y_trans = torch.sigmoid(y_trans)
+
+        x = self.cross_channel(y, w, y_trans, reconstruction)
+        x = torch.sigmoid(x)
 
         return x
 
@@ -175,11 +179,13 @@ class SingleChannelInterpolation(nn.Module):
         self.kappa = kappa
         self.kernel = nn.Parameter(torch.zeros((self.observed_points,)))
 
-    def forward(self, x: Tensor, reconstruction: bool = False) -> Tensor:
-        x_t = x[0]
-        d = x[1]
-        m = x[2]
-
+    def forward(
+            self,
+            x_t: Tensor,
+            d: Tensor,
+            m:Tensor,
+            reconstruction: bool = False
+    ) -> Tuple[Tensor, Tensor, Optional[Tensor]]:
         if reconstruction:
             output_dim = self.observed_points
             ref_t = d.unsqueeze(2).expand(-1, -1, output_dim, -1)
@@ -199,13 +205,13 @@ class SingleChannelInterpolation(nn.Module):
         y = torch.einsum("ijkl,ijkl->ijl", w1, x_t)
 
         if reconstruction:
-            return torch.stack((y, w))
+            return y, w, None
 
         w_t = torch.logsumexp(-self.kappa * alpha * norm + torch.log(m), dim=2)
         w_t = w_t.unsqueeze(2).expand(-1, -1, self.observed_points, -1)
         w_t = torch.exp(-self.kappa * alpha * norm + torch.log(m) - w_t)
         y_trans = torch.einsum("ijkl,ijkl->ijl", w_t, x_t)
-        return torch.stack((y, w, y_trans))
+        return y, w, y_trans
 
 
 class CrossChannelInterpolation(nn.Module):
@@ -230,11 +236,14 @@ class CrossChannelInterpolation(nn.Module):
         self.reference_points = reference_points
         self.cross_channel_interpolation = nn.Parameter(torch.eye(self.num_features))
 
-    def forward(self, x: Tensor, reconstruction: bool = False) -> Tensor:
+    def forward(
+            self,
+            y: Tensor,
+            w: Tensor,
+            y_trans: Optional[Tensor],
+            reconstruction: bool = False
+    ) -> Tensor:
         output_dim = self.observed_points if reconstruction else self.reference_points
-
-        y = x[0]
-        w = x[1]
 
         intensity = torch.exp(w)
 
@@ -252,6 +261,5 @@ class CrossChannelInterpolation(nn.Module):
         if reconstruction:
             return rep1
 
-        y_trans = x[2]
         y_trans = y_trans - rep1
         return torch.stack((rep1, intensity, y_trans))

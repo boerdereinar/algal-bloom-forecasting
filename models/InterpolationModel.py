@@ -65,8 +65,7 @@ class InterpolationModel(LightningModule):
         x_t, d, m = reshape_input(x, water_mask_indices, observed_x, masked)
 
         # Feed into interpolation network
-        x_in = torch.stack((x_t, d, m))
-        y_interp = self.interp_net(x_in)
+        y_interp = self.interp_net(x_t, d, m)
 
         # Reshape interpolated output
         y_interp = reshape_output(y_interp, water_mask_indices, batch_size, height, width, masked)
@@ -87,10 +86,8 @@ class InterpolationModel(LightningModule):
         held_out = m_holdout ^ m
 
         # Feed into interpolation and reconstruction network
-        x_in = torch.stack((x_t, d, m))
-        y_interp = self.interp_net(x_in)
-        x_in[2] = m_holdout
-        y_reconst = self.interp_net(x_in, True)
+        y_interp = self.interp_net(x_t, d, m)
+        y_reconst = self.interp_net(x_t, d, m_holdout, True)
 
         # Compute reconstruction loss
         mse_reconst = mse_loss(y_reconst[held_out], x_t[held_out])
