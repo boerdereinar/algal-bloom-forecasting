@@ -20,7 +20,7 @@ export PYTHONPATH=/scratch/${USER}/algal-bloom/brp-algal-bloom-forecasting:$PYTH
 
 # Run the python module
 srun python3 -m ${USER}.main \
-train UNet RioNegro \
+train UNet \
 --root /scratch/${USER}/algal-bloom/data \
 --reservoir palmar \
 --window-size 5 \

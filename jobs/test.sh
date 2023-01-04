@@ -23,7 +23,7 @@ CHECKPOINT="<checkpoint_path>"
 
 # Run the python module
 srun python3 -m ${USER}.main \
-test UNet RioNegro \
+test UNet \
 --checkpoint-path $CHECKPOINT \
 --save-dir /scratch/${USER}/algal-bloom/plots \
 --accelerator gpu \
