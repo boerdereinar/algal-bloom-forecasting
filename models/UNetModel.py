@@ -117,8 +117,8 @@ class UNetModel(LightningModule):
 
         self.log("train_loss", loss)
         if self.hparams.classify:
-            accuracy = self.accuracy(y_hat, y)
-            self.log("train_accuracy", accuracy)
+            accuracy = self.accuracy(y_hat, y) if y_hat.numel() > 0 else torch.tensor(0.).to(x)
+            self.log("train_accuracy", accuracy, prog_bar=True)
 
         return loss
 
@@ -131,7 +131,7 @@ class UNetModel(LightningModule):
 
         self.log("val_loss", loss)
         if self.hparams.classify:
-            accuracy = self.accuracy(y_hat, y)
+            accuracy = self.accuracy(y_hat, y) if y_hat.numel() > 0 else torch.tensor(0.).to(x)
             self.log("val_accuracy", accuracy)
 
         return loss
