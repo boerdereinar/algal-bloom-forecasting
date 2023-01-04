@@ -25,4 +25,6 @@ class Bin:
         Returns:
             A binned tensor.
         """
-        return torch.bucketize(x, self.bins)
+        binned = torch.bucketize(x, self.bins)
+        binned[torch.isnan(x)] = -1
+        return binned

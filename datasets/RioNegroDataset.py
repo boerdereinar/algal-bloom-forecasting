@@ -21,7 +21,7 @@ class RioNegroDataset(GeoDataset):
 
     CLIP = torch.tensor([20, 100, 80])
     MEAN = torch.tensor([2.68, 19.90, 27.89])
-    STD  = torch.tensor([1.37, 63.00, 12.72])
+    STD = torch.tensor([1.37, 63.00, 12.72])
     BINS = torch.tensor([0, 20, 50, 80, 100])
 
     def __init__(

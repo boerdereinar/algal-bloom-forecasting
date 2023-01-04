@@ -11,9 +11,11 @@ from torch import Tensor
 from torch.nn.functional import cross_entropy, mse_loss
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torchmetrics.classification import MulticlassAccuracy
 
+from edegruyl.datasets import RioNegroDataset
 from edegruyl.models import UNet
-from edegruyl.utils.modelutils import extract_batch
+from edegruyl.utils.modelutils import extract_batch, mask_output
 
 
 class UNetModel(LightningModule):
@@ -51,8 +53,13 @@ class UNetModel(LightningModule):
 
         pl.seed_everything(seed)
 
+        num_classes = len(RioNegroDataset.BINS) + 1
+
         in_channels = window_size * num_bands
-        self.model = UNet(in_channels, 1)
+        out_channels = num_classes if classify else 1
+        self.model = UNet(in_channels, out_channels)
+
+        self.accuracy = MulticlassAccuracy(num_classes)
 
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -97,28 +104,40 @@ class UNetModel(LightningModule):
 
     def loss(self, predictions: Tensor, expected: Tensor) -> Tensor:
         if self.hparams.classify:
-            return cross_entropy(predictions, expected)
+            return cross_entropy(predictions, expected).nan_to_num()
 
         return mse_loss(predictions, expected).nan_to_num()
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, _, observed = extract_batch(train_batch)
+        x, y, _, observed = extract_batch(train_batch, classify=self.hparams.classify)
         y_hat = self(x)
-        loss = self.loss(y_hat[observed], y[observed])
+
+        y_hat, y = mask_output(y_hat, y, observed, self.hparams.classify)
+        loss = self.loss(y_hat, y)
 
         self.log("train_loss", loss)
+        if self.hparams.classify:
+            accuracy = self.accuracy(y_hat, y)
+            self.log("train_accuracy", accuracy)
+
         return loss
 
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, _, observed = extract_batch(val_batch)
+        x, y, _, observed = extract_batch(val_batch, classify=self.hparams.classify)
         y_hat = self(x)
-        loss = self.loss(y_hat[observed], y[observed])
+
+        y_hat, y = mask_output(y_hat, y, observed, self.hparams.classify)
+        loss = self.loss(y_hat, y)
 
         self.log("val_loss", loss)
+        if self.hparams.classify:
+            accuracy = self.accuracy(y_hat, y)
+            self.log("val_accuracy", accuracy)
+
         return loss
 
     def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, _, observed = extract_batch(test_batch)
+        x, y, _, observed = extract_batch(test_batch, classify=self.hparams.classify)
         y_hat = self(x)
 
         squared_error = torch.empty_like(y)

@@ -79,6 +79,7 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
     Trainer.add_argparse_args(trainer_parser)
     model_class.add_model_specific_args(trainer_parser)
     datamodule_class.add_datamodule_specific_args(trainer_parser)
+    trainer_parser.add_argument("--disable-logger", action="store_true", help="Whether to disable the wandb logger.")
     trainer_args = trainer_parser.parse_args(unknown_args)
 
     # Model
@@ -87,17 +88,20 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
 
     # Logging
     lr_monitor = LearningRateMonitor("step", True)
-    wandb_logger = WandbLogger(
-        project="algal-bloom",
-        log_model=True,
-        save_dir="." if trainer_args.default_root_dir is None else trainer_args.default_root_dir
-    )
+    if trainer_args.disable_logger:
+        logger = True
+    else:
+        logger = WandbLogger(
+            project="algal-bloom",
+            log_model=True,
+            save_dir="." if trainer_args.default_root_dir is None else trainer_args.default_root_dir
+        )
 
     # Trainer
     trainer: Trainer = Trainer.from_argparse_args(
         trainer_args,
         callbacks=[lr_monitor],
-        logger=wandb_logger
+        logger=logger
     )
 
     # trainer.tune(model, datamodule)
