@@ -11,7 +11,7 @@ from torch import Tensor
 from torch.nn.functional import cross_entropy, mse_loss
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchmetrics.classification import MulticlassAccuracy
+from torchmetrics import Accuracy
 
 from edegruyl.datasets import RioNegroDataset
 from edegruyl.models import UNet
@@ -59,7 +59,7 @@ class UNetModel(LightningModule):
         out_channels = num_classes if classify else 1
         self.model = UNet(in_channels, out_channels)
 
-        self.accuracy = MulticlassAccuracy(num_classes)
+        self.accuracy = Accuracy(num_classes=num_classes)
 
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
