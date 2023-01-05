@@ -132,13 +132,16 @@ class UNetModel(LightningModule):
         self.log("val_loss", loss)
         if self.hparams.classify:
             accuracy = self.accuracy(y_hat, y) if y_hat.numel() > 0 else torch.tensor(0.).to(x)
-            self.log("val_accuracy", accuracy)
+            self.log("val_accuracy", accuracy, prog_bar=True)
 
         return loss
 
     def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(test_batch, classify=self.hparams.classify)
         y_hat = self(x)
+
+        if self.hparams.classify:
+            raise NotImplementedError()
 
         squared_error = torch.empty_like(y)
         squared_error[:] = torch.nan
