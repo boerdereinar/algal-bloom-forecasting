@@ -62,7 +62,14 @@ class RioNegroDataset(GeoDataset):
             roi &= self.biological_processed.bounds
         self.roi = BoundingBox(roi.minx, roi.maxx, roi.miny, roi.maxy, roi.mint + dt, roi.maxt)
 
-    def load_datasets(self, root: str, reservoir: str):
+    def load_datasets(self, root: str, reservoir: str) -> None:
+        """
+        Load the datasets in parallel.
+
+        Args:
+            root: The root directory where the data is stored.
+            reservoir: The specific reservoir of data to load.
+        """
         with tqdm_joblib(tqdm(desc="Loading datasets", total=3)):
             jobs = [
                 delayed(BiologicalDataset)(
@@ -89,9 +96,6 @@ class RioNegroDataset(GeoDataset):
             if self.load_processed:
                 self.biological_processed = datasets[2]
 
-    def load_dataset(self, cls, name):
-        return lambda *args, **kwargs: setattr(self, name, cls(*args, **kwargs))
-
     def __getitem__(self, query: BoundingBox) -> Dict[str, Any]:
         item = self.dataset[query]
 
@@ -102,6 +106,10 @@ class RioNegroDataset(GeoDataset):
 
         # Get the water mask
         water_mask = item["mask"].unsqueeze(0)
+
+        # Early return if window size is zero
+        if self.window_size == 0:
+            return {"ground_truth": ground_truth, "water_mask": water_mask}
 
         mint = datetime.fromtimestamp(query.mint).replace(hour=0, minute=0, second=0, microsecond=0)
         maxt = datetime.fromtimestamp(query.maxt).replace(hour=23, minute=59, second=59, microsecond=999999)

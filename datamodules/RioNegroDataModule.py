@@ -32,13 +32,14 @@ class RioNegroDataModule(LightningDataModule):
             reservoir: str,
             window_size: int,
             prediction_horizon: int,
-            load_processed: bool = True,
-            classify: bool = False,
-            overfit: bool = False,
             train_test_split: float = 0.8,
             size: int = 256,
             batch_size: int = 1,
             length: int = 1000,
+            load_processed: bool = True,
+            classify: bool = False,
+            train_on_validation: bool = False,
+            overfit: bool = False,
             num_workers: int = 0,
             **kwargs: Any
     ) -> None:
@@ -49,14 +50,15 @@ class RioNegroDataModule(LightningDataModule):
             reservoir: The specific reservoir of data to load.
             window_size: The window size to use when sampling data.
             prediction_horizon: The prediction horizon to use when sampling data.
-            load_processed: Whether to load the processed data in the dataset. The default value is True.
-            classify: Whether to use classification instead of regression. The default value is False.
-            overfit: Whether to overfit on a single batch of data. The default value is False.
             train_test_split: The ratio between the number of training and test samples. The default value is 0.8,
                 meaning that 80% of the data will be used for training and 20% for testing.
             size: The size of the patches of data that will be sampled. The default value is 256.
             batch_size: The size of the batches that will be sampled. The default value is 1.
             length: The number of samples that will be generated per epoch. The default value is 1000.
+            load_processed: Whether to load the processed data in the dataset. The default value is True.
+            classify: Whether to use classification instead of regression. The default value is False.
+            train_on_validation: Whether to train on the validation set. The default value is False.
+            overfit: Whether to overfit on a single batch of data. The default value is False.
             num_workers: The number of workers to use for parallel data loading. The default value is 0.
             kwargs: Additional keyword arguments.
         """
@@ -86,16 +88,18 @@ class RioNegroDataModule(LightningDataModule):
         parser.add_argument("--reservoir", type=str, help="The reservoir to train for.", required=True)
         parser.add_argument("--window-size", type=int, help="The window size.", required=True)
         parser.add_argument("--prediction-horizon", type=int, help="The prediction horizon.", required=True)
-        parser.add_argument("--exclude-processed", dest="load_processed", action="store_false",
-                            help="Whether to exclude the processed data from the dataset.")
-        parser.add_argument("--classify", action="store_true", help="Whether to use classification instead of "
-                                                                    "regression.")
-        parser.add_argument("--overfit", action="store_true", help="Whether to overfit on a single batch of data.")
         parser.add_argument("--train-test-split", type=float, default=0.8,
                             help="The ratio between the number of training and test samples.")
         parser.add_argument("--size", type=int, help="The size of the sampled patches in pixels.", default=256)
         parser.add_argument("--batch-size", type=int, help="The size of the batches.", default=1)
         parser.add_argument("--length", type=int, help="The number of samples per epoch.", default=1000)
+        parser.add_argument("--exclude-processed", dest="load_processed", action="store_false",
+                            help="Whether to exclude the processed data from the dataset.")
+        parser.add_argument("--classify", action="store_true", help="Whether to use classification instead of "
+                                                                    "regression.")
+        parser.add_argument("--train-on-validation", action="store_true", help="Whether to train on the validation "
+                                                                               "set.")
+        parser.add_argument("--overfit", action="store_true", help="Whether to overfit on a single batch of data.")
         parser.add_argument("--num-workers", type=int, help="The number of workers to load the date with.", default=0)
         return parent_parser
 
@@ -115,7 +119,7 @@ class RioNegroDataModule(LightningDataModule):
         maxt = mint - timedelta(microseconds=1)
 
         # Training sampler
-        train_roi = BoundingBox(roi.minx, roi.maxx, roi.miny, roi.maxy, roi.mint, maxt.timestamp())
+        train_roi = BoundingBox(roi.minx, roi.maxx, roi.miny, roi.maxy, roi.mint, max(roi.mint, maxt.timestamp()))
         self.train_sampler = RandomBatchGeoSampler(
             self.dataset.biological_unprocessed,
             size=self.hparams.size,  # type: ignore
@@ -149,6 +153,8 @@ class RioNegroDataModule(LightningDataModule):
     def train_dataloader(self) -> DataLoader:
         if self.hparams.overfit:
             return DataLoader(self.single_batch_dataset, collate_fn=lambda x: x[0])
+        if self.hparams.train_on_validation:
+            return self.val_dataloader()
 
         return DataLoader(
             self.dataset,
