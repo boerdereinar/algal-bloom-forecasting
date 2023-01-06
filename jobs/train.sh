@@ -29,7 +29,6 @@ train UNet \
 --batch-size 10 \
 --length 1000 \
 --num-workers 8 \
---classify \
 --default_root_dir /scratch/${USER}/algal-bloom/checkpoints \
 --accelerator gpu \
 --devices 1 \
