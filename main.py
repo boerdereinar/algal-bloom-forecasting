@@ -5,7 +5,8 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace, R
 from typing import Iterable, List, Tuple
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loggers.wandb import WandbLogger
 
 import edegruyl.models
@@ -83,15 +84,10 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
     datamodule = RioNegroDataModule(**vars(trainer_args))
 
     # Logging
+    save_dir = trainer_args.default_root_dir or "./checkpoints"
+
     lr_monitor = LearningRateMonitor("step", True)
-    if trainer_args.disable_logger:
-        logger = True
-    else:
-        logger = WandbLogger(
-            project="algal-bloom",
-            log_model=True,
-            save_dir="." if trainer_args.default_root_dir is None else trainer_args.default_root_dir
-        )
+    logger = trainer_args.disable_logger or WandbLogger(project="algal-bloom", log_model=True, save_dir=save_dir)
 
     # Trainer
     trainer: Trainer = Trainer.from_argparse_args(
@@ -99,8 +95,6 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
         callbacks=[lr_monitor],
         logger=logger
     )
-
-    # trainer.tune(model, datamodule)
     trainer.fit(model, datamodule)
 
 

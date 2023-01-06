@@ -70,31 +70,31 @@ class RioNegroDataset(GeoDataset):
             root: The root directory where the data is stored.
             reservoir: The specific reservoir of data to load.
         """
-        with tqdm_joblib(tqdm(desc="Loading datasets", total=3)):
-            jobs = [
-                delayed(BiologicalDataset)(
-                    os.path.join(root, "biological", reservoir),
-                    transforms=self.clip
-                ),
-                delayed(LandCoverDataset)(
-                    os.path.join(root, "land_use"),
-                    transforms=self.water_mask
-                )
-            ]
+        jobs = [
+            delayed(BiologicalDataset)(
+                os.path.join(root, "biological", reservoir),
+                transforms=self.clip
+            ),
+            delayed(LandCoverDataset)(
+                os.path.join(root, "land_use"),
+                transforms=self.water_mask
+            )
+        ]
 
-            if self.load_processed:
-                jobs.append(delayed(BiologicalDataset)(
-                    os.path.join(root, "biological_processed", reservoir),
-                    transforms=Compose([self.clip, self.normalize])
-                ))
+        if self.load_processed:
+            jobs.append(delayed(BiologicalDataset)(
+                os.path.join(root, "biological_processed", reservoir),
+                transforms=Compose([self.clip, self.normalize])
+            ))
 
+        with tqdm_joblib(tqdm(desc="Loading datasets", total=len(jobs))):
             datasets = Parallel(len(jobs), batch_size=1)(jobs)
 
-            self.biological_unprocessed = datasets[0]
-            self.water_use = datasets[1]
+        self.biological_unprocessed = datasets[0]
+        self.water_use = datasets[1]
 
-            if self.load_processed:
-                self.biological_processed = datasets[2]
+        if self.load_processed:
+            self.biological_processed = datasets[2]
 
     def __getitem__(self, query: BoundingBox) -> Dict[str, Any]:
         item = self.dataset[query]
