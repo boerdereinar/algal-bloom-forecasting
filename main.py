@@ -5,8 +5,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace, R
 from typing import Iterable, List, Tuple
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers.wandb import WandbLogger
 
 import edegruyl.models
