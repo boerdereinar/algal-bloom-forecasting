@@ -95,7 +95,7 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
         logger=logger
     )
     trainer.fit(model, datamodule)
-    trainer.test()
+    trainer.test(model, datamodule)
 
 
 def test(args: Namespace, unknown_args: List[str]) -> None:
