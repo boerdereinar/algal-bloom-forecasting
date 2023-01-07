@@ -16,7 +16,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchmetrics import Accuracy
 
 from edegruyl.datasets import RioNegroDataset
-from edegruyl.models import UNet
+from edegruyl.models import DenseWeightModel, UNet
 from edegruyl.utils.modelutils import extract_batch, mask_output
 
 
@@ -30,6 +30,7 @@ class UNetModel(LightningModule):
             learning_rate: float = 1e-4,
             momentum: float = 0.9,
             patience: int = 3,
+            dense_weight: Optional[str] = None,
             classify: bool = False,
             seed: int = 42,
             save_dir: Optional[str] = None,
@@ -45,6 +46,7 @@ class UNetModel(LightningModule):
             learning_rate: The learning rate of the optimizer.
             momentum: The momentum of the optimizer.
             patience: The number of epochs with no improvement after which learning rate will be reduced.
+            dense_weight: The path to the checkpoint of the DenseWeightModel.
             classify: Whether to use classification instead of regression.
             seed: The seed for the global random state.
             save_dir: The save directory for the output of the test run.
@@ -61,6 +63,7 @@ class UNetModel(LightningModule):
         out_channels = num_classes if classify else 1
         self.model = UNet(in_channels, out_channels)
 
+        self.dense_weight = dense_weight and DenseWeightModel.load_from_checkpoint(dense_weight)
         self.accuracy = Accuracy(num_classes=num_classes)
 
     @staticmethod
@@ -70,8 +73,9 @@ class UNetModel(LightningModule):
         parser.add_argument("--momentum", type=float, help="The momentum of the optimizer.", default=0.9)
         parser.add_argument("--patience", type=int, default=3, help="The number of epochs with no improvement after "
                                                                     "which learning rate will be reduced.")
+        parser.add_argument("--dense-weight", type=str, help="The path to the checkpoint of the DenseWeightModel.")
         parser.add_argument("--seed", type=int, default=42, help="The seed for the global random state.")
-        parser.add_argument("--save-dir", type=str, help="The save directory for the plots.", default=None)
+        parser.add_argument("--save-dir", type=str, help="The save directory for the plots.")
         return parent_parser
 
     def forward(self, x: Tensor) -> Tensor:
@@ -104,11 +108,14 @@ class UNetModel(LightningModule):
             "monitor": "val_loss"
         }
 
-    def loss(self, predictions: Tensor, expected: Tensor) -> Tensor:
+    def loss(self, predicted: Tensor, expected: Tensor) -> Tensor:
         if self.hparams.classify:
-            return cross_entropy(predictions, expected).nan_to_num()
+            return cross_entropy(predicted, expected).nan_to_num()
 
-        return mse_loss(predictions, expected).nan_to_num()
+        if self.dense_weight is not None:
+            return self.dense_weight.forward(predicted, expected)
+
+        return mse_loss(predicted, expected).nan_to_num()
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(train_batch, classify=self.hparams.classify)

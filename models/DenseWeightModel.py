@@ -43,11 +43,12 @@ class DenseWeightModel(LightningModule):
                                                                     "a data point can receive.")
         return parent_parser
 
-    def forward(self, x: Tensor) -> Tensor:
-        indexes = torch.clamp(torch.bucketize(x, self.bins), 0, self.hparams.res - 1)
+    def forward(self, predicted: Tensor, expected: Tensor) -> Tensor:
+        indexes = torch.clamp(torch.bucketize(expected, self.bins), 0, self.hparams.res - 1)
         weights = self.weights[indexes]
 
-        return weights
+        weighted_mse = ((expected - predicted) ** 2 * weights).mean()
+        return weighted_mse
 
     def configure_optimizers(self) -> Any:
         return None
