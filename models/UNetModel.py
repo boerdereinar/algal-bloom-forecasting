@@ -5,8 +5,10 @@ from typing import Any, Dict, List, Optional, Union
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch
+import wandb
 from matplotlib.colors import LogNorm
 from pytorch_lightning import LightningModule
+from pytorch_lightning.loggers.wandb import WandbLogger
 from torch import Tensor
 from torch.nn.functional import cross_entropy, mse_loss
 from torch.optim import SGD
@@ -143,6 +145,33 @@ class UNetModel(LightningModule):
         if self.hparams.classify:
             raise NotImplementedError()
 
+        # Log images
+        logger = self.logger
+        if isinstance(logger, WandbLogger):
+            for i in range(len(y)):
+                logger.log_table(
+                    "test_predicted",
+                    ["Predicted", "Expected"],
+                    [[wandb.Image(y_hat[i], "F"), wandb.Image(y[i], "F")]]
+                )
+        elif self.hparams.save_dir:
+            for i in range(len(y)):
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 4.8))
+                ax1.set_title("predicted")
+                im = ax1.imshow(y_hat[i, 0].cpu(), vmin=0, vmax=RioNegroDataset.CLIP[1], interpolation=None)
+                ax2.set_title("expected")
+                ax2.imshow(y[i, 0].cpu(), vmin=0, vmax=RioNegroDataset.CLIP[1], interpolation=None)
+
+                # Add colorbar
+                fig.subplots_adjust(right=0.8)
+                cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+                fig.colorbar(im, cax=cbar_ax)
+
+                # Save figure
+                fig.savefig(os.path.join(self.hparams.save_dir, f"test_{batch_idx}_{i}.png"))
+                plt.close()
+
+        # Compute per-element squared error
         squared_error = torch.empty_like(y)
         squared_error[:] = torch.nan
         squared_error[torch.where(observed)] = (y[observed] - y_hat[observed]) ** 2
@@ -154,11 +183,13 @@ class UNetModel(LightningModule):
             outputs = torch.cat(outputs)[:, 0]
         rmse = torch.nanmean(outputs, 0).sqrt()
 
-        plt.figure(figsize=(8, 4))
-        plt.title("RMSE loss")
-        plt.imshow(rmse.cpu(), norm=LogNorm(), cmap="jet")
-        plt.colorbar()
-        if self.hparams.save_dir:  # type: ignore
+        logger = self.logger
+        if isinstance(logger, WandbLogger):
+            logger.log_image("test_rmse", [wandb.Image(rmse, "F", "RMSE loss")])
+        elif self.hparams.save_dir:  # type: ignore
+            plt.figure(figsize=(8, 4))
+            plt.title("RMSE loss")
+            plt.imshow(rmse.cpu(), norm=LogNorm())
+            plt.colorbar()
             path = os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
             plt.savefig(path, transparent=True)
-        plt.show()

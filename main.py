@@ -86,7 +86,7 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
     save_dir = trainer_args.default_root_dir or "./checkpoints"
 
     lr_monitor = LearningRateMonitor("step", True)
-    logger = trainer_args.disable_logger or WandbLogger(project="algal-bloom", log_model=True, save_dir=save_dir)
+    logger = trainer_args.disable_logger or WandbLogger(project="algal-bloom", save_dir=save_dir)
 
     # Trainer
     trainer: Trainer = Trainer.from_argparse_args(
@@ -95,6 +95,7 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
         logger=logger
     )
     trainer.fit(model, datamodule)
+    trainer.test()
 
 
 def test(args: Namespace, unknown_args: List[str]) -> None:
@@ -108,14 +109,19 @@ def test(args: Namespace, unknown_args: List[str]) -> None:
     Trainer.add_argparse_args(test_parser)
     test_parser.add_argument("--checkpoint-path", type=str, help="The path to the checkpoint.", required=True)
     test_parser.add_argument("--save-dir", type=str, help="The save directory for the plots.", default=None)
+    test_parser.add_argument("--disable-logger", action="store_true", help="Whether to disable the wandb logger.")
     test_args = test_parser.parse_args(unknown_args)
+
+    # Logging
+    save_dir = test_args.default_root_dir or "./checkpoints"
+    logger = test_args.disable_logger or WandbLogger(project="algal-bloom", save_dir=save_dir)
 
     # Model
     model = model_class.load_from_checkpoint(test_args.checkpoint_path, save_dir=test_args.save_dir)
     datamodule = RioNegroDataModule.load_from_checkpoint(test_args.checkpoint_path)
 
     # Trainer
-    trainer: Trainer = Trainer.from_argparse_args(test_args)
+    trainer: Trainer = Trainer.from_argparse_args(test_args, logger=logger)
 
     trainer.test(model, datamodule)
 

@@ -26,5 +26,6 @@ srun python3 -m ${USER}.main \
 test UNet \
 --checkpoint-path $CHECKPOINT \
 --save-dir /scratch/${USER}/algal-bloom/plots \
+--default_root_dir /scratch/${USER}/algal-bloom/plots \
 --accelerator gpu \
 --devices 1

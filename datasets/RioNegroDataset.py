@@ -19,7 +19,7 @@ class RioNegroDataset(GeoDataset):
     biological_processed: Optional[BiologicalDataset] = None
     water_use: LandCoverDataset
 
-    CLIP = torch.tensor([20, 100, 80])
+    CLIP = torch.tensor([20, 150, 100])
     MEAN = torch.tensor([2.68, 19.90, 27.89])
     STD = torch.tensor([1.37, 63.00, 12.72])
     BINS = torch.tensor([0, 20, 50, 80, 100])
