@@ -25,7 +25,7 @@ DENSE_WEIGHT="<dense_weight_checkpoint_path>"
 srun python3 -m ${USER}.main \
 train UNet \
 --root /scratch/${USER}/algal-bloom/data \
---dense-weight DENSE_WEIGHT \
+--dense-weight ${DENSE_WEIGHT} \
 --reservoir palmar \
 --window-size 5 \
 --prediction-horizon 1 \
