@@ -18,10 +18,14 @@ source activate /scratch/${USER}/algal-bloom/envs/geo
 # Set the python path
 export PYTHONPATH=/scratch/${USER}/algal-bloom/brp-algal-bloom-forecasting:$PYTHONPATH
 
+# Set the dense weight checkpoint path
+DENSE_WEIGHT="<dense_weight_checkpoint_path>"
+
 # Run the python module
 srun python3 -m ${USER}.main \
 train UNet \
 --root /scratch/${USER}/algal-bloom/data \
+--dense-weight DENSE_WEIGHT \
 --reservoir palmar \
 --window-size 5 \
 --prediction-horizon 1 \
