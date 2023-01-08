@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch
 import wandb
-from matplotlib.colors import LogNorm
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import LogNorm, Normalize
 from pytorch_lightning import LightningModule
 from pytorch_lightning.loggers.wandb import WandbLogger
 from torch import Tensor
@@ -155,11 +156,13 @@ class UNetModel(LightningModule):
         # Log images
         logger = self.logger
         if isinstance(logger, WandbLogger):
+            cm = plt.get_cmap("viridis")
+            norm = Normalize(vmin=0, vmax=RioNegroDataset.CLIP[1], clip=True)
             for i in range(len(y)):
                 logger.log_table(
                     "test_predicted",
                     ["Predicted", "Expected"],
-                    [[wandb.Image(y_hat[i], "F"), wandb.Image(y[i], "F")]]
+                    [[wandb.Image(cm(norm(y_hat[i]), bytes=True)), wandb.Image(cm(norm(y[i]), bytes=True))]]
                 )
         elif self.hparams.save_dir:
             for i in range(len(y)):
