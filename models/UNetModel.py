@@ -197,8 +197,8 @@ class UNetModel(LightningModule):
         logger = self.logger
         if isinstance(logger, WandbLogger):
             cm = plt.get_cmap("viridis")
-            norm = Normalize(vmin=0, clip=True)
-            logger.log_image("test_rmse", [wandb.Image(cm(norm(rmse.cpu()), bytes=True), "RMSE loss")])
+            norm = rmse / rmse.max()
+            logger.log_image("test_rmse", [wandb.Image(cm(norm.cpu(), bytes=True), caption="RMSE loss")])
         elif self.hparams.save_dir:  # type: ignore
             plt.figure(figsize=(8, 4))
             plt.title("RMSE loss")
