@@ -10,7 +10,7 @@ from matplotlib.colors import LogNorm, Normalize
 from pytorch_lightning import LightningModule
 from pytorch_lightning.loggers.wandb import WandbLogger
 from torch import Tensor
-from torch.nn.functional import cross_entropy, mse_loss, sigmoid
+from torch.nn.functional import cross_entropy, mse_loss
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchmetrics import Accuracy
@@ -27,7 +27,7 @@ class UNetModel(LightningModule):
             window_size: int,
             num_bands: int,
             size: int,
-            learning_rate: float = 1e-4,
+            learning_rate: float = 1e-3,
             momentum: float = 0.9,
             patience: int = 3,
             dense_weight: Optional[str] = None,
@@ -89,7 +89,7 @@ class UNetModel(LightningModule):
         """
         x = torch.flatten(x, 1, 2)
         x = self.model(x)
-        x = sigmoid(x)
+        x = torch.sigmoid(x)
 
         return x
 

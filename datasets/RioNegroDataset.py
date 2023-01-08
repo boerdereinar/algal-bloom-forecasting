@@ -43,6 +43,7 @@ class RioNegroDataset(GeoDataset):
         # Transforms
         self.clip = Clip(self.CLIP)
         self.normalize = Normalize(self.CLIP)
+        self.normalize_chlorophyll = Normalize(self.CLIP[1].unsqueeze(0))
         self.bin = Bin(self.BINS)
         self.water_mask = ClassMask(1)
 
@@ -100,14 +101,14 @@ class RioNegroDataset(GeoDataset):
         item = self.dataset[query]
 
         # Get the chlorophyll-a band
-        ground_truth = item["image"][1].unsqueeze(0)
+        ground_truth = item["image"][1]
         if self.classify:
             ground_truth = self.bin(ground_truth)
         else:
-            ground_truth = self.normalize(ground_truth)
+            ground_truth = self.normalize_chlorophyll(ground_truth)
 
         # Get the water mask
-        water_mask = item["mask"].unsqueeze(0)
+        water_mask = item["mask"]
 
         # Early return if window size is zero
         if self.window_size == 0:
