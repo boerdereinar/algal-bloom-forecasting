@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import wandb
@@ -160,11 +161,10 @@ class UNetModel(LightningModule):
         if isinstance(logger, WandbLogger):
             cm = plt.get_cmap("viridis")
             for i in range(len(y)):
-                logger.log_table(
-                    "test_predicted",
-                    ["Predicted", "Expected"],
-                    [[wandb.Image(cm(y_hat[i].cpu(), bytes=True)), wandb.Image(cm(y[i].cpu(), bytes=True))]]
-                )
+                predicted = np.pad(cm(y_hat[i].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
+                expected = np.pad(cm(y[i].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
+                img = np.hstack((predicted, expected))
+                logger.log_image("test_predicted", [wandb.Image(img)])
         elif self.hparams.save_dir:
             for i in range(len(y)):
                 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 4.8))
@@ -189,9 +189,8 @@ class UNetModel(LightningModule):
 
         return squared_error
 
-    def test_epoch_end(self, outputs: Union[Tensor, List[Tensor]]) -> None:
-        if isinstance(outputs, List):
-            outputs = torch.cat(outputs)[:, 0]
+    def test_epoch_end(self, outputs: List[Tensor]) -> None:
+        outputs = torch.cat(outputs)[:, 0]
         rmse = torch.nanmean(outputs, 0).sqrt()
 
         logger = self.logger

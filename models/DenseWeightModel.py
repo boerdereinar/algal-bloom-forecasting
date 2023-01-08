@@ -54,8 +54,7 @@ class DenseWeightModel(LightningModule):
         return None
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> dict[str, Tensor]:
-        opt = self.optimizers()
-        opt.step()
+        self.optimizers().step()
 
         ground_truth = train_batch["ground_truth"]
         observed = ~torch.isnan(ground_truth)
