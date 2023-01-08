@@ -162,7 +162,7 @@ class UNetModel(LightningModule):
                 logger.log_table(
                     "test_predicted",
                     ["Predicted", "Expected"],
-                    [[wandb.Image(cm(norm(y_hat[i]), bytes=True)), wandb.Image(cm(norm(y[i]), bytes=True))]]
+                    [[wandb.Image(cm(norm(y_hat[i].cpu()), bytes=True)), wandb.Image(cm(norm(y[i].cpu()), bytes=True))]]
                 )
         elif self.hparams.save_dir:
             for i in range(len(y)):
