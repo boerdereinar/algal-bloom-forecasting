@@ -69,7 +69,7 @@ class UNetModel(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = parent_parser.add_argument_group("Model")
-        parser.add_argument("--learning-rate", type=float, help="The learning rate of the optimizer.", default=1e-4)
+        parser.add_argument("--learning-rate", type=float, help="The learning rate of the optimizer.", default=1e-3)
         parser.add_argument("--momentum", type=float, help="The momentum of the optimizer.", default=0.9)
         parser.add_argument("--patience", type=int, default=3, help="The number of epochs with no improvement after "
                                                                     "which learning rate will be reduced.")
