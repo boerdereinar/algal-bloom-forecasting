@@ -20,8 +20,8 @@ class RioNegroDataset(GeoDataset):
     water_use: LandCoverDataset
 
     CLIP = torch.tensor([20, 150, 100])
-    MEAN = torch.tensor([2.68, 19.90, 27.89])
-    STD = torch.tensor([1.37, 63.00, 12.72])
+    # MEAN = torch.tensor([2.68, 19.90, 27.89])
+    # STD = torch.tensor([1.37, 63.00, 12.72])
     BINS = torch.tensor([0, 20, 50, 80, 100])
 
     def __init__(
@@ -42,7 +42,7 @@ class RioNegroDataset(GeoDataset):
 
         # Transforms
         self.clip = Clip(self.CLIP)
-        self.normalize = Normalize(self.MEAN, self.STD)
+        self.normalize = Normalize(self.CLIP)
         self.bin = Bin(self.BINS)
         self.water_mask = ClassMask(1)
 
@@ -103,6 +103,8 @@ class RioNegroDataset(GeoDataset):
         ground_truth = item["image"][1].unsqueeze(0)
         if self.classify:
             ground_truth = self.bin(ground_truth)
+        else:
+            ground_truth = self.normalize(ground_truth)
 
         # Get the water mask
         water_mask = item["mask"].unsqueeze(0)

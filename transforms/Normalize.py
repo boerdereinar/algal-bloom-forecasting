@@ -7,16 +7,14 @@ class Normalize:
     """
     A class that normalizes tensor values in a dictionary.
     """
-    def __init__(self, mean: Tensor, std: Tensor):
+    def __init__(self, max: Tensor):
         """
         Initializes the Normalize class.
 
         Args:
-            mean: A tensor containing the means of each channel.
-            std: A tensor containing the standard deviations of each channel.
+            max: A tensor containing the maximum values of each channel.
         """
-        self.mean = mean[:, None, None]
-        self.std = std[:, None, None]
+        self.max = max[:, None, None]
 
     def __call__(self, x: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -31,7 +29,7 @@ class Normalize:
         data: Dict[str, Any] = dict()
         for key, value in x.items():
             if isinstance(value, Tensor):
-                data[key] = (value - self.mean) / self.std
+                data[key] = value / self.max
             else:
                 data[key] = value
 

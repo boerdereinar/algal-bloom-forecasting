@@ -6,12 +6,11 @@ import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch
 import wandb
-from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LogNorm, Normalize
 from pytorch_lightning import LightningModule
 from pytorch_lightning.loggers.wandb import WandbLogger
 from torch import Tensor
-from torch.nn.functional import cross_entropy, mse_loss
+from torch.nn.functional import cross_entropy, mse_loss, sigmoid
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchmetrics import Accuracy
@@ -89,7 +88,10 @@ class UNetModel(LightningModule):
             Tensor: The output of the model, of shape (batch_size, 1, size, size).
         """
         x = torch.flatten(x, 1, 2)
-        return self.model(x)
+        x = self.model(x)
+        x = sigmoid(x)
+
+        return x
 
     def configure_optimizers(self) -> Dict[str, Any]:
         optimizer = SGD(
@@ -120,7 +122,7 @@ class UNetModel(LightningModule):
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(train_batch, classify=self.hparams.classify)
-        y_hat = self(x)
+        y_hat = self.forward(x)
 
         y_hat, y = mask_output(y_hat, y, observed, self.hparams.classify)
         loss = self.loss(y_hat, y)
@@ -134,7 +136,7 @@ class UNetModel(LightningModule):
 
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(val_batch, classify=self.hparams.classify)
-        y_hat = self(x)
+        y_hat = self.forward(x)
 
         y_hat, y = mask_output(y_hat, y, observed, self.hparams.classify)
         loss = self.loss(y_hat, y)
@@ -148,7 +150,7 @@ class UNetModel(LightningModule):
 
     def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(test_batch, classify=self.hparams.classify)
-        y_hat = self(x)
+        y_hat = self.forward(x)
 
         if self.hparams.classify:
             raise NotImplementedError()
@@ -157,20 +159,19 @@ class UNetModel(LightningModule):
         logger = self.logger
         if isinstance(logger, WandbLogger):
             cm = plt.get_cmap("viridis")
-            norm = Normalize(vmin=0, vmax=RioNegroDataset.CLIP[1], clip=True)
             for i in range(len(y)):
                 logger.log_table(
                     "test_predicted",
                     ["Predicted", "Expected"],
-                    [[wandb.Image(cm(norm(y_hat[i].cpu()), bytes=True)), wandb.Image(cm(norm(y[i].cpu()), bytes=True))]]
+                    [[wandb.Image(cm(y_hat[i].cpu(), bytes=True)), wandb.Image(cm(y[i].cpu(), bytes=True))]]
                 )
         elif self.hparams.save_dir:
             for i in range(len(y)):
                 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 4.8))
                 ax1.set_title("predicted")
-                im = ax1.imshow(y_hat[i, 0].cpu(), vmin=0, vmax=RioNegroDataset.CLIP[1], interpolation=None)
+                im = ax1.imshow(y_hat[i, 0].cpu(), vmin=0, vmax=1, interpolation=None)
                 ax2.set_title("expected")
-                ax2.imshow(y[i, 0].cpu(), vmin=0, vmax=RioNegroDataset.CLIP[1], interpolation=None)
+                ax2.imshow(y[i, 0].cpu(), vmin=0, vmax=1, interpolation=None)
 
                 # Add colorbar
                 fig.subplots_adjust(right=0.8)
@@ -195,7 +196,9 @@ class UNetModel(LightningModule):
 
         logger = self.logger
         if isinstance(logger, WandbLogger):
-            logger.log_image("test_rmse", [wandb.Image(rmse, "F", "RMSE loss")])
+            cm = plt.get_cmap("viridis")
+            norm = Normalize(vmin=0, clip=True)
+            logger.log_image("test_rmse", [wandb.Image(cm(norm(rmse.cpu()), bytes=True), "RMSE loss")])
         elif self.hparams.save_dir:  # type: ignore
             plt.figure(figsize=(8, 4))
             plt.title("RMSE loss")
