@@ -161,8 +161,8 @@ class UNetModel(LightningModule):
         if isinstance(logger, WandbLogger):
             cm = plt.get_cmap("viridis")
             for i in range(len(y)):
-                predicted = np.pad(cm(y_hat[i].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
-                expected = np.pad(cm(y[i].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
+                predicted = np.pad(cm(y_hat[i, 0].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
+                expected = np.pad(cm(y[i, 0].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
                 img = np.hstack((predicted, expected))
                 logger.log_image("test_predicted", [wandb.Image(img)])
         elif self.hparams.save_dir:
