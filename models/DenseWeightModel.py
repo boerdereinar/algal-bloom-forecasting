@@ -48,7 +48,7 @@ class DenseWeightModel(LightningModule):
         weights = self.weights[indexes]
 
         weighted_mse = ((expected - predicted) ** 2 * weights).mean()
-        return weighted_mse
+        return weighted_mse.nan_to_num()
 
     def configure_optimizers(self) -> Any:
         return None
