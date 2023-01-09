@@ -4,6 +4,7 @@ import sys
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace, RawTextHelpFormatter
 from typing import Iterable, List, Tuple
 
+from lightning_lite.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers.wandb import WandbLogger
@@ -95,7 +96,10 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
         logger=logger
     )
     trainer.fit(model, datamodule)
-    trainer.test(model, datamodule)
+    try:
+        trainer.test(model, datamodule)
+    except MisconfigurationException:
+        print("Skip testing")
 
 
 def test(args: Namespace, unknown_args: List[str]) -> None:

@@ -8,6 +8,8 @@ from KDEpy import FFTKDE
 from pytorch_lightning import LightningModule
 from torch import Tensor, nn
 
+from edegruyl.datasets import RioNegroDataset
+
 
 class DenseWeightModel(LightningModule):
     """
@@ -80,5 +82,29 @@ class DenseWeightModel(LightningModule):
         self.bins = nn.Parameter(torch.tensor(bins), False)
         self.weights = nn.Parameter(torch.tensor(w), False)
 
-        plt.plot(bins, w)
+        # Plot the relevance and chlorophyll-a density
+        h, _ = np.histogram(data, bins, density=True)
+        x1 = bins * RioNegroDataset.CLIP[1].item()
+        x2 = (bins[1:] + bins[:-1]) / 2 * RioNegroDataset.CLIP[1].item()
+
+        fig, ax1 = plt.subplots(dpi=200, figsize=(6, 3))
+        ax2 = ax1.twinx()
+
+        # Axis configuration
+        ax1.set_xlim([1, RioNegroDataset.CLIP[1].item()])
+        ax1.set_xscale("log")
+        ax1.set_xlabel("concentration (μg/L)")
+
+        # Plot relevance
+        ax1.set_ylabel("relevance", color="tab:red")
+        ax1.tick_params(axis="y", labelcolor="tab:red")
+        p1, = ax1.plot(x1, w, color="tab:red", label="DenseWeight")
+
+        # Plot chlorophyll-a density
+        ax2.set_ylabel("density", color="tab:blue")
+        ax2.tick_params(axis="y", labelcolor="tab:blue")
+        p2, = ax2.plot(x2, h, color="tab:blue", label="Chlorophyll-A")
+
+        ax1.legend(handles=[p1, p2], loc="center right")
+        fig.tight_layout()
         plt.show()
