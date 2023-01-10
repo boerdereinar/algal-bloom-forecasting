@@ -96,7 +96,7 @@ def train(args: Namespace, unknown_args: List[str]) -> None:
     )
     trainer.fit(model, datamodule)
 
-    if model.test_step.__module__ == model.__module:
+    if model.test_step.__module__ == model.__module__:
         trainer.test(model, datamodule)
 
 
