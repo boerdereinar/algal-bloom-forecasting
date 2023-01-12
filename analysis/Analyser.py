@@ -173,21 +173,23 @@ class Analyser:
 
     def plot_histograms(self):
         """Plots the histograms of the analysis results using Matplotlib."""
-        for i, band in enumerate(self.dataset.all_bands):
-            plt.figure(figsize=(8, 5), facecolor="none", layout="constrained")
-            ax = plt.gca()
-            if not self.exclude_titles:
-                plt.title(band.capitalize())
-            plt.xlabel(r"concentration (μg/L)")
-            plt.ylabel("occurrences")
-            plt.stairs(*self.hists[i], fill=True, color="#496F0B")
-            ax.set_xscale("log")
-            ax.set_facecolor("#E9F6D0")
-            ax.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.ylabel("density")
+        ax.set_xscale("log")
 
-            if self.save_plots and self.save_dir:
-                plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_{band}_hist.png"))
-            plt.show()
+        for i, band in enumerate(self.dataset.all_bands):
+            h, bins = self.hists[i]
+            h = h / h.max(initial=1)
+            bins = (bins[1:] + bins[:-1]) / 2
+
+            plt.plot(bins, h, label=band)
+
+        plt.legend()
+        fig.tight_layout()
+
+        if self.save_plots and self.save_dir:
+            plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_hist.png"))
+        plt.show()
 
     def plot_sparsity(self):
         """Plots the temporal and spatial sparsity of the dataset using Matplotlib."""
@@ -199,13 +201,15 @@ class Analyser:
         # Plot temporal sparsity
         dt = [(d2 - d1).days for d1, d2 in zip(dates, dates[1:])]
         binned_dt = np.bincount(dt)
-        plt.figure(figsize=(8, 5), facecolor="none", layout="constrained")
+        fig = plt.figure(figsize=(10, 5))
         if not self.exclude_titles:
             plt.title("Days between consecutive samples")
+
         plt.xlabel("days")
         plt.ylabel("samples")
-        plt.bar(range(len(binned_dt)), binned_dt, color="#496F0B")
-        plt.gca().set_facecolor("#E9F6D0")
+        plt.bar(range(len(binned_dt)), binned_dt)
+
+        fig.tight_layout()
 
         if self.save_plots and self.save_dir:
             plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_days_between_samples.png"))
@@ -215,13 +219,11 @@ class Analyser:
         for i, band in enumerate(self.dataset.all_bands):
             missing_samples = np.ma.masked_where(~self.water_coverage, np.zeros(self.water_coverage.shape))
             missing_samples[np.where(self.water_coverage)] = self.total_samples - self.measurements[i]
-            missing_samples[0, 0] = 10
-            missing_samples.mask[0, 0] = False
 
             plt.figure(figsize=(8, 4))
             if not self.exclude_titles:
                 plt.title(f"{band.capitalize()} missing spatial samples")
-            plt.imshow(missing_samples, norm=LogNorm(), cmap="jet")
+            plt.imshow(missing_samples, norm=LogNorm(10))
             plt.gca().set_xticks([])
             plt.gca().set_yticks([])
             plt.colorbar()
