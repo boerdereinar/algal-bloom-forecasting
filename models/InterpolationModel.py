@@ -218,13 +218,17 @@ class InterpolationModel(LightningModule):
 
     def test_epoch_end(self, outputs: List[Tensor]) -> None:
         outputs = torch.cat(outputs)[:, 0]
-        rmse = torch.nanmean(outputs, 0).sqrt()
+        rmse = torch.nanmean(outputs, 0).nan_to_num().sqrt()
 
         logger = self.logger
         if isinstance(logger, WandbLogger):
             cm = plt.get_cmap("viridis")
-            norm = rmse / rmse.max()
-            logger.log_image("test_rmse", [wandb.Image(cm(norm.cpu(), bytes=True), caption="RMSE loss")])
+            max_rmse = rmse.max()
+            norm = rmse / max_rmse
+            logger.log_image(
+                "test_rmse",
+                [wandb.Image(cm(norm.cpu(), bytes=True), caption=f"RMSE loss (max = {max_rmse})")]
+            )
         elif self.hparams.save_dir:  # type: ignore
             plt.figure(figsize=(8, 4))
             plt.title("RMSE loss")
