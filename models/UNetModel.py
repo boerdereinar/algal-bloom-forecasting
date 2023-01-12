@@ -90,7 +90,6 @@ class UNetModel(LightningModule):
         """
         x = torch.flatten(x, 1, 2)
         x = self.model(x)
-        x = torch.sigmoid(x)
 
         return x
 

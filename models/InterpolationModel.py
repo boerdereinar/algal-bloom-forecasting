@@ -104,7 +104,6 @@ class InterpolationModel(LightningModule):
 
         # Feed into UNet
         y_hat = self.model(y_interp)
-        y_hat = torch.sigmoid(y_hat)
 
         return y_hat
 
@@ -157,7 +156,6 @@ class InterpolationModel(LightningModule):
 
         # Feed into UNet
         y_hat = self.model(y_interp)
-        y_hat = torch.sigmoid(y_hat)
 
         # Compute prediction loss
         y_hat, y = mask_output(y_hat, y, observed_y)
