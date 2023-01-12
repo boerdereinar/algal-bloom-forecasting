@@ -143,7 +143,7 @@ class InterpolationNetwork(nn.Module):
         self.single_channel = SingleChannelInterpolation(observed_points, reference_points)
         self.cross_channel = CrossChannelInterpolation(num_features, observed_points, reference_points)
 
-    def forward(self, x_t: Tensor, d: Tensor, m:Tensor, reconstruction: bool = False) -> Tensor:
+    def forward(self, x_t: Tensor, d: Tensor, m: Tensor, reconstruction: bool = False) -> Tensor:
         y, w, y_trans = self.single_channel(x_t, d, m, reconstruction)
 
         y = torch.sigmoid(y)
@@ -183,7 +183,7 @@ class SingleChannelInterpolation(nn.Module):
             self,
             x_t: Tensor,
             d: Tensor,
-            m:Tensor,
+            m: Tensor,
             reconstruction: bool = False
     ) -> Tuple[Tensor, Tensor, Optional[Tensor]]:
         if reconstruction:
@@ -197,19 +197,19 @@ class SingleChannelInterpolation(nn.Module):
         d = d.unsqueeze(-1).expand(-1, -1, -1, output_dim)
         m = m.unsqueeze(-1).expand(-1, -1, -1, output_dim)
 
-        norm = (d - ref_t) * (d - ref_t)
-        alpha = torch.log(1 + torch.exp(self.kernel))[None, None, :, None]
-        w = torch.logsumexp(-alpha * norm + torch.log(m), dim=2)
-        w1 = w.unsqueeze(2).expand(-1, -1, self.observed_points, -1)
-        w1 = torch.exp(-alpha * norm + torch.log(m) - w1)
+        norm = (d - ref_t) * (d - ref_t) * m
+        alpha = torch.log1p(torch.exp(self.kernel))[None, None, :, None]
+        w = torch.logsumexp(-alpha * norm, dim=2)
+        w1 = w.unsqueeze(2).expand(-1, -1, self.observed_points, -1) * m
+        w1 = torch.exp(-alpha * norm - w1)
         y = torch.einsum("ijkl,ijkl->ijl", w1, x_t)
 
         if reconstruction:
             return y, w, None
 
-        w_t = torch.logsumexp(-self.kappa * alpha * norm + torch.log(m), dim=2)
-        w_t = w_t.unsqueeze(2).expand(-1, -1, self.observed_points, -1)
-        w_t = torch.exp(-self.kappa * alpha * norm + torch.log(m) - w_t)
+        w_t = torch.logsumexp(-self.kappa * alpha * norm, dim=2)
+        w_t = w_t.unsqueeze(2).expand(-1, -1, self.observed_points, -1) * m
+        w_t = torch.exp(-self.kappa * alpha * norm - w_t)
         y_trans = torch.einsum("ijkl,ijkl->ijl", w_t, x_t)
         return y, w, y_trans
 

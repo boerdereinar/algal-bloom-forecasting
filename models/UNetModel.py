@@ -1,13 +1,13 @@
 import os
 from argparse import ArgumentParser
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytorch_lightning as pl
 import torch
 import wandb
-from matplotlib.colors import LogNorm, Normalize
+from matplotlib.colors import LogNorm
 from pytorch_lightning import LightningModule
 from pytorch_lightning.loggers.wandb import WandbLogger
 from torch import Tensor
@@ -38,7 +38,7 @@ class UNetModel(LightningModule):
             **kwargs: Any
     ) -> None:
         """
-        Initialize the UNet-classifier.
+        Initialize the UNet-model.
 
         Args:
             window_size: The size of the window that the classifier will use to look at the input data.
