@@ -28,7 +28,7 @@ class InterpolationModel(LightningModule):
             num_bands: int,
             size: int,
             masked: bool = False,
-            learning_rate: float = 1e-4,
+            learning_rate: float = 1e-3,
             momentum: float = 0.9,
             patience: int = 3,
             dense_weight: Optional[str] = None,
@@ -69,7 +69,7 @@ class InterpolationModel(LightningModule):
         parser = parent_parser.add_argument_group("Model")
         parser.add_argument("--masked", action="store_true", help="Whether the interpolation is only applied to the "
                                                                   "area masked by the water mask.")
-        parser.add_argument("--learning-rate", type=float, help="The learning rate of the optimizer.", default=1e-4)
+        parser.add_argument("--learning-rate", type=float, help="The learning rate of the optimizer.", default=1e-3)
         parser.add_argument("--momentum", type=float, help="The momentum of the optimizer.", default=0.9)
         parser.add_argument("--patience", type=int, default=3, help="The number of epochs with no improvement after "
                                                                     "which learning rate will be reduced.")
