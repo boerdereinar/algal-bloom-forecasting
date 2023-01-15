@@ -126,7 +126,7 @@ class RioNegroDataset(GeoDataset):
             if self.load_processed:
                 # Get a preprocessed sample
                 samples.append(self.biological_processed[bbox]["image"])
-            elif any(True for _ in self.index.intersection(bbox)):
+            elif any(True for _ in self.index.intersection(tuple(bbox))):
                 # Get a real sample if it exists and normalize it
                 samples.append(self.normalize(self.biological_unprocessed[bbox])["image"])
             else:
