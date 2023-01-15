@@ -148,7 +148,7 @@ class InterpolationModel(LightningModule):
         y_reconst = self.interp_net(x_t, d, m_holdout, True)
 
         # Compute reconstruction loss
-        reconst_loss = mse_loss(y_reconst[held_out], x_t[held_out])
+        reconst_loss = mse_loss(y_reconst[held_out], x_t[held_out]).nan_to_num()
 
         # Reshape interpolated output
         y_interp = reshape_output(y_interp, water_mask_indices, batch_size, height, width, self.hparams.masked)
