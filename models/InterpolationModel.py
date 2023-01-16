@@ -121,13 +121,15 @@ class InterpolationModel(LightningModule):
             "monitor": "val_loss"
         }
 
-    def loss(self, predicted: Tensor, expected: Tensor) -> Tensor:
+    def loss(self, predicted: Tensor, expected: Tensor) -> Tuple[Tensor, Tensor]:
+        mse = mse_loss(predicted, expected).nan_to_num()
+
         if self.dense_weight is not None:
-            return self.dense_weight.forward(predicted, expected)
+            return self.dense_weight.forward(predicted, expected), mse
 
-        return mse_loss(predicted, expected).nan_to_num()
+        return mse, mse
 
-    def compute_loss(self, batch: Dict[str, Tensor]) -> Tuple[Tensor, Tensor]:
+    def compute_loss(self, batch: Dict[str, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
         x, y, water_mask, observed_x, observed_y = extract_batch(batch, True)
         batch_size, observed_points, num_features, height, width = x.shape
         water_mask_indices = torch.where(water_mask)
@@ -155,22 +157,22 @@ class InterpolationModel(LightningModule):
 
         # Compute prediction loss
         y_hat, y = mask_output(y_hat, y, observed_y)
-        loss = self.loss(y_hat, y)
+        loss, loss_to_log = self.loss(y_hat, y)
 
-        return reconst_loss, loss
+        return reconst_loss, loss, loss_to_log
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        reconst_loss, loss = self.compute_loss(train_batch)
+        reconst_loss, loss, loss_to_log = self.compute_loss(train_batch)
 
-        self.log("train_loss", loss, prog_bar=True)
+        self.log("train_loss", loss_to_log, prog_bar=True)
         self.log("train_reconst_loss", reconst_loss, prog_bar=True)
 
         return reconst_loss + loss
 
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        reconst_loss, loss = self.compute_loss(val_batch)
+        reconst_loss, loss, loss_to_log = self.compute_loss(val_batch)
 
-        self.log("val_loss", loss, prog_bar=True)
+        self.log("val_loss", loss_to_log, prog_bar=True)
         self.log("val_reconst_loss", reconst_loss, prog_bar=True)
 
         return reconst_loss + loss

@@ -1,6 +1,6 @@
 import os
 from argparse import ArgumentParser
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -105,20 +105,22 @@ class UNetModel(LightningModule):
             "monitor": "val_loss"
         }
 
-    def loss(self, predicted: Tensor, expected: Tensor) -> Tensor:
-        if self.dense_weight is not None:
-            return self.dense_weight.forward(predicted, expected)
+    def loss(self, predicted: Tensor, expected: Tensor) -> Tuple[Tensor, Tensor]:
+        mse = mse_loss(predicted, expected).nan_to_num()
 
-        return mse_loss(predicted, expected).nan_to_num()
+        if self.dense_weight is not None:
+            return self.dense_weight.forward(predicted, expected), mse
+
+        return mse, mse
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, _, observed = extract_batch(train_batch)
         y_hat = self.forward(x)
 
         y_hat, y = mask_output(y_hat, y, observed)
-        loss = self.loss(y_hat, y)
+        loss, loss_to_log = self.loss(y_hat, y)
 
-        self.log("train_loss", loss)
+        self.log("train_loss", loss_to_log)
 
         return loss
 
@@ -127,9 +129,9 @@ class UNetModel(LightningModule):
         y_hat = self.forward(x)
 
         y_hat, y = mask_output(y_hat, y, observed)
-        loss = self.loss(y_hat, y)
+        loss, loss_to_log = self.loss(y_hat, y)
 
-        self.log("val_loss", loss)
+        self.log("val_loss", loss_to_log)
 
         return loss
 
