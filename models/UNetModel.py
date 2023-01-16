@@ -2,16 +2,11 @@ import os
 from argparse import ArgumentParser
 from typing import Any, Dict, List, Optional
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pytorch_lightning as pl
 import torch
-import wandb
-from matplotlib.colors import LogNorm
 from pytorch_lightning import LightningModule
-from pytorch_lightning.loggers.wandb import WandbLogger
 from torch import Tensor
-from torch.nn.functional import cross_entropy, mse_loss
+from torch.nn.functional import mse_loss
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchmetrics import Accuracy
@@ -19,6 +14,7 @@ from torchmetrics import Accuracy
 from edegruyl.datasets import RioNegroDataset
 from edegruyl.models import DenseWeightModel, UNet
 from edegruyl.utils.modelutils import extract_batch, mask_output
+from edegruyl.utils.plotutils import figure_to_image, log_figure, plot_predicted, plot_rmse
 
 
 class UNetModel(LightningModule):
@@ -32,7 +28,6 @@ class UNetModel(LightningModule):
             momentum: float = 0.9,
             patience: int = 3,
             dense_weight: Optional[str] = None,
-            classify: bool = False,
             seed: int = 42,
             save_dir: Optional[str] = None,
             **kwargs: Any
@@ -48,7 +43,6 @@ class UNetModel(LightningModule):
             momentum: The momentum of the optimizer.
             patience: The number of epochs with no improvement after which learning rate will be reduced.
             dense_weight: The path to the checkpoint of the DenseWeightModel.
-            classify: Whether to use classification instead of regression.
             seed: The seed for the global random state.
             save_dir: The save directory for the output of the test run.
             **kwargs:
@@ -61,7 +55,7 @@ class UNetModel(LightningModule):
         num_classes = len(RioNegroDataset.BINS) + 1
 
         in_channels = window_size * num_bands
-        out_channels = num_classes if classify else 1
+        out_channels = 1
         self.model = UNet(in_channels, out_channels)
 
         self.dense_weight = dense_weight and DenseWeightModel.load_from_checkpoint(dense_weight)
@@ -112,99 +106,56 @@ class UNetModel(LightningModule):
         }
 
     def loss(self, predicted: Tensor, expected: Tensor) -> Tensor:
-        if self.hparams.classify:
-            return cross_entropy(predicted, expected).nan_to_num()
-
         if self.dense_weight is not None:
             return self.dense_weight.forward(predicted, expected)
 
         return mse_loss(predicted, expected).nan_to_num()
 
     def training_step(self, train_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, _, observed = extract_batch(train_batch, classify=self.hparams.classify)
+        x, y, _, observed = extract_batch(train_batch)
         y_hat = self.forward(x)
 
-        y_hat, y = mask_output(y_hat, y, observed, self.hparams.classify)
+        y_hat, y = mask_output(y_hat, y, observed)
         loss = self.loss(y_hat, y)
 
         self.log("train_loss", loss)
-        if self.hparams.classify:
-            accuracy = self.accuracy(y_hat, y) if y_hat.numel() > 0 else torch.tensor(0.).to(x)
-            self.log("train_accuracy", accuracy, prog_bar=True)
 
         return loss
 
     def validation_step(self, val_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, _, observed = extract_batch(val_batch, classify=self.hparams.classify)
+        x, y, _, observed = extract_batch(val_batch)
         y_hat = self.forward(x)
 
-        y_hat, y = mask_output(y_hat, y, observed, self.hparams.classify)
+        y_hat, y = mask_output(y_hat, y, observed)
         loss = self.loss(y_hat, y)
 
         self.log("val_loss", loss)
-        if self.hparams.classify:
-            accuracy = self.accuracy(y_hat, y) if y_hat.numel() > 0 else torch.tensor(0.).to(x)
-            self.log("val_accuracy", accuracy, prog_bar=True)
 
         return loss
 
     def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, _, observed = extract_batch(test_batch, classify=self.hparams.classify)
+        x, y, _, observed_y = extract_batch(test_batch)
         y_hat = self.forward(x)
 
-        if self.hparams.classify:
-            raise NotImplementedError()
-
         # Log images
-        logger = self.logger
-        if isinstance(logger, WandbLogger):
-            cm = plt.get_cmap("viridis")
-            for i in range(len(y)):
-                predicted = np.pad(cm(y_hat[i, 0].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
-                expected = np.pad(cm(y[i, 0].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
-                img = np.hstack((predicted, expected))
-                logger.log_image("test_predicted", [wandb.Image(img)])
-        elif self.hparams.save_dir:
-            for i in range(len(y)):
-                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 4.8))
-                ax1.set_title("predicted")
-                im = ax1.imshow(y_hat[i, 0].cpu(), vmin=0, vmax=1, interpolation=None)
-                ax2.set_title("expected")
-                ax2.imshow(y[i, 0].cpu(), vmin=0, vmax=1, interpolation=None)
-
-                # Add colorbar
-                fig.subplots_adjust(right=0.8)
-                cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-                fig.colorbar(im, cax=cbar_ax)
-
-                # Save figure
-                fig.savefig(os.path.join(self.hparams.save_dir, f"test_{batch_idx}_{i}.png"))
-                plt.close()
+        for i in range(len(y)):
+            fig = plot_predicted(y_hat[i, 0], y[i, 0])
+            path = self.hparams.save_dir and os.path.join(self.hparams.save_dir, f"test_{batch_idx}_{i}.png")
+            log_figure(fig, self.logger, "test_predicted", path)
 
         # Compute per-element squared error
         squared_error = torch.empty_like(y)
         squared_error[:] = torch.nan
-        squared_error[torch.where(observed)] = (y[observed] - y_hat[observed]) ** 2
+        squared_error[torch.where(observed_y)] = (y[observed_y] - y_hat[observed_y]) ** 2
 
         return squared_error
 
     def test_epoch_end(self, outputs: List[Tensor]) -> None:
         outputs = torch.cat(outputs)[:, 0]
         rmse = torch.nanmean(outputs, 0).nan_to_num().sqrt()
+        global_rmse = torch.nanmean(outputs).nan_to_num().sqrt()
 
-        logger = self.logger
-        if isinstance(logger, WandbLogger):
-            cm = plt.get_cmap("viridis")
-            max_rmse = rmse.max()
-            norm = rmse / max_rmse
-            logger.log_image(
-                "test_rmse",
-                [wandb.Image(cm(norm.cpu(), bytes=True), caption=f"RMSE loss (max = {max_rmse})")]
-            )
-        elif self.hparams.save_dir:  # type: ignore
-            plt.figure(figsize=(8, 4))
-            plt.title("RMSE loss")
-            plt.imshow(rmse.cpu(), norm=LogNorm())
-            plt.colorbar()
-            path = os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
-            plt.savefig(path, transparent=True)
+        fig = plot_rmse(rmse, global_rmse)
+        _ = figure_to_image(fig)
+        path = os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
+        log_figure(fig, self.logger, "test_rmse", path)

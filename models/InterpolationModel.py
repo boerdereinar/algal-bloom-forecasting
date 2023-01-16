@@ -2,15 +2,10 @@ import os
 from argparse import ArgumentParser
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import pytorch_lightning as pl
 import torch
-import wandb
-from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from pytorch_lightning import LightningModule
 from pytorch_lightning.cli import ReduceLROnPlateau
-from pytorch_lightning.loggers.wandb import WandbLogger
 from torch import Tensor
 from torch.nn.functional import mse_loss
 from torch.optim import SGD
@@ -18,6 +13,7 @@ from torch.optim import SGD
 from edegruyl.models import DenseWeightModel, UNet
 from edegruyl.models.InterpolationLayer import InterpolationNetwork, reshape_input, reshape_output
 from edegruyl.utils.modelutils import extract_batch, mask_output
+from edegruyl.utils.plotutils import log_figure, plot_predicted, plot_rmse
 
 
 class InterpolationModel(LightningModule):
@@ -184,30 +180,10 @@ class InterpolationModel(LightningModule):
         y_hat = self.forward(x, water_mask, observed_x)
 
         # Log images
-        logger = self.logger
-        if isinstance(logger, WandbLogger):
-            cm = plt.get_cmap("viridis")
-            for i in range(len(y)):
-                predicted = np.pad(cm(y_hat[i, 0].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
-                expected = np.pad(cm(y[i, 0].cpu(), bytes=True), ((2,), (2,), (0,)), constant_values=255)
-                img = np.hstack((predicted, expected))
-                logger.log_image("test_predicted", [wandb.Image(img)])
-        elif self.hparams.save_dir:
-            for i in range(len(y)):
-                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 4.8))
-                ax1.set_title("predicted")
-                im = ax1.imshow(y_hat[i, 0].cpu(), vmin=0, vmax=1, interpolation=None)
-                ax2.set_title("expected")
-                ax2.imshow(y[i, 0].cpu(), vmin=0, vmax=1, interpolation=None)
-
-                # Add colorbar
-                fig.subplots_adjust(right=0.8)
-                cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-                fig.colorbar(im, cax=cbar_ax)
-
-                # Save figure
-                fig.savefig(os.path.join(self.hparams.save_dir, f"test_{batch_idx}_{i}.png"))
-                plt.close()
+        for i in range(len(y)):
+            fig = plot_predicted(y_hat[i, 0], y[i, 0])
+            path = self.hparams.save_dir and os.path.join(self.hparams.save_dir, f"test_{batch_idx}_{i}.png")
+            log_figure(fig, self.logger, "test_predicted", path)
 
         # Compute per-element squared error
         squared_error = torch.empty_like(y)
@@ -219,20 +195,8 @@ class InterpolationModel(LightningModule):
     def test_epoch_end(self, outputs: List[Tensor]) -> None:
         outputs = torch.cat(outputs)[:, 0]
         rmse = torch.nanmean(outputs, 0).nan_to_num().sqrt()
+        global_rmse = torch.nanmean(outputs).nan_to_num().sqrt()
 
-        logger = self.logger
-        if isinstance(logger, WandbLogger):
-            cm = plt.get_cmap("viridis")
-            max_rmse = rmse.max()
-            norm = rmse / max_rmse
-            logger.log_image(
-                "test_rmse",
-                [wandb.Image(cm(norm.cpu(), bytes=True), caption=f"RMSE loss (max = {max_rmse})")]
-            )
-        elif self.hparams.save_dir:  # type: ignore
-            plt.figure(figsize=(8, 4))
-            plt.title("RMSE loss")
-            plt.imshow(rmse.cpu(), norm=LogNorm())
-            plt.colorbar()
-            path = os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
-            plt.savefig(path, transparent=True)
+        fig = plot_rmse(rmse, global_rmse)
+        path = os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
+        log_figure(fig, self.logger, "test_rmse", path)
