@@ -136,8 +136,9 @@ class UNetModel(LightningModule):
         return loss
 
     def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
-        x, y, _, observed_y = extract_batch(test_batch)
+        x, y, water_mask, observed_y = extract_batch(test_batch)
         y_hat = self.forward(x)
+        y_hat[~water_mask] = 0
 
         # Log images
         for i in range(len(y)):
@@ -146,9 +147,8 @@ class UNetModel(LightningModule):
             log_figure(fig, self.logger, "test_predicted", path)
 
         # Compute per-element squared error
-        squared_error = torch.empty_like(y)
-        squared_error[:] = torch.nan
-        squared_error[torch.where(observed_y)] = (y[observed_y] - y_hat[observed_y]) ** 2
+        squared_error = torch.full_like(y, torch.nan)
+        squared_error[observed_y] = (y[observed_y] - y_hat[observed_y]) ** 2
 
         return squared_error
 

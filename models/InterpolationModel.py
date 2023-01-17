@@ -180,6 +180,7 @@ class InterpolationModel(LightningModule):
     def test_step(self, test_batch: Dict[str, Tensor], batch_idx: int) -> Tensor:
         x, y, water_mask, observed_x, observed_y = extract_batch(test_batch, True)
         y_hat = self.forward(x, water_mask, observed_x)
+        y_hat[~water_mask] = 0
 
         # Log images
         for i in range(len(y)):
