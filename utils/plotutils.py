@@ -24,19 +24,23 @@ def plot_predicted(predicted: Tensor, expected: Tensor) -> Figure:
     """
     fig, (ax1, ax2) = plt.subplots(1, 2, dpi=200, figsize=(15, 4.8))
 
+    max_chlorophyll = RioNegroDataset.CLIP[1]
+    predicted *= max_chlorophyll
+    expected *= max_chlorophyll
+
     ax1.set_title("predicted")
     ax1.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)
-    im = ax1.imshow(predicted.cpu(), vmin=0, vmax=1, interpolation=None)
+    im = ax1.imshow(predicted.cpu(), vmin=0, vmax=max_chlorophyll, interpolation=None)
 
     ax2.set_title("expected")
     ax2.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)
-    ax2.imshow(expected.cpu(), vmin=0, vmax=1, interpolation=None)
+    ax2.imshow(expected.cpu(), vmin=0, vmax=max_chlorophyll, interpolation=None)
 
     # Add colorbar
     fig.tight_layout()
     fig.subplots_adjust(right=0.90)
     cbar_ax = fig.add_axes([0.93, 0.11, 0.02, 0.78])
-    fig.colorbar(im, cax=cbar_ax)
+    fig.colorbar(im, cax=cbar_ax, label="μgL⁻¹")
 
     return fig
 
