@@ -159,5 +159,5 @@ class UNetModel(LightningModule):
 
         fig = plot_rmse(rmse, global_rmse)
         _ = figure_to_image(fig)
-        path = os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
+        path = self.hparams.save_dir and os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
         log_figure(fig, self.logger, "test_rmse", path)
