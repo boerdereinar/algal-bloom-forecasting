@@ -189,8 +189,7 @@ class InterpolationModel(LightningModule):
             log_figure(fig, self.logger, "test_predicted", path)
 
         # Compute per-element squared error
-        squared_error = torch.empty_like(y)
-        squared_error[:] = torch.nan
+        squared_error = torch.full_like(y, torch.nan)
         squared_error[torch.where(observed_y)] = (y[observed_y] - y_hat[observed_y]) ** 2
 
         return squared_error

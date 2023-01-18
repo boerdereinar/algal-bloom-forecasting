@@ -158,6 +158,5 @@ class UNetModel(LightningModule):
         global_rmse = torch.nanmean(outputs).nan_to_num().sqrt()
 
         fig = plot_rmse(rmse, global_rmse)
-        _ = figure_to_image(fig)
         path = self.hparams.save_dir and os.path.join(self.hparams.save_dir, "rmse_loss_validation.png")  # type: ignore
         log_figure(fig, self.logger, "test_rmse", path)

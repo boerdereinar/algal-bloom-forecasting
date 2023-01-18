@@ -149,10 +149,10 @@ class Analyser:
                              for i, x in enumerate(data)]
 
         # Styling
-        plt.rc("font", size=20)
-        plt.rc("axes", linewidth=1)
-        plt.rc("xtick.major", size=10)
-        plt.rc("xtick.minor", size=5)
+        # plt.rc("font", size=20)
+        # plt.rc("axes", linewidth=1)
+        # plt.rc("xtick.major", size=10)
+        # plt.rc("xtick.minor", size=5)
 
         self.print_summary()
         self.plot_histograms()
@@ -201,7 +201,7 @@ class Analyser:
         # Plot temporal sparsity
         dt = [(d2 - d1).days for d1, d2 in zip(dates, dates[1:])]
         binned_dt = np.bincount(dt)
-        fig = plt.figure(figsize=(10, 5))
+        fig = plt.figure(figsize=(5, 3), dpi=200)
         if not self.exclude_titles:
             plt.title("Days between consecutive samples")
 
@@ -220,7 +220,7 @@ class Analyser:
             missing_samples = np.ma.masked_where(~self.water_coverage, np.zeros(self.water_coverage.shape))
             missing_samples[np.where(self.water_coverage)] = self.total_samples - self.measurements[i]
 
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(5, 3), dpi=200)
             if not self.exclude_titles:
                 plt.title(f"{band.capitalize()} missing spatial samples")
             plt.imshow(missing_samples, norm=LogNorm(10))

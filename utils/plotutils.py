@@ -25,8 +25,8 @@ def plot_predicted(predicted: Tensor, expected: Tensor) -> Figure:
     fig, (ax1, ax2) = plt.subplots(1, 2, dpi=200, figsize=(15, 4.8))
 
     max_chlorophyll = RioNegroDataset.CLIP[1]
-    predicted *= max_chlorophyll
-    expected *= max_chlorophyll
+    predicted = predicted * max_chlorophyll
+    expected = expected * max_chlorophyll
 
     ax1.set_title("predicted")
     ax1.tick_params(which="both", bottom=False, left=False, labelbottom=False, labelleft=False)
@@ -57,8 +57,8 @@ def plot_rmse(rmse: Tensor, global_rmse: Tensor) -> Figure:
         The figure with the plotted loss.
     """
     max_chlorophyll = RioNegroDataset.CLIP[1]
-    rmse *= max_chlorophyll
-    global_rmse *= max_chlorophyll
+    rmse = rmse * max_chlorophyll
+    global_rmse = global_rmse * max_chlorophyll
 
     fig = plt.figure(dpi=200, figsize=(8, 4))
     plt.title(f"RMSE loss ({global_rmse} μgL⁻¹)")
