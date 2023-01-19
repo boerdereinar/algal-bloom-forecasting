@@ -21,5 +21,6 @@ srun python3 -m ${USER}.main \
 preprocess Interpolate \
 -s /scratch/${USER}/algal-bloom/data/biological \
 -t /scratch/${USER}/algal-bloom/data/biological_processed \
+--land-use /scratch/${USER}/algal-bloom/data/land_use \
 -st LookBack \
 --num-workers 3
