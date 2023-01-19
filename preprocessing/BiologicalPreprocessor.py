@@ -18,6 +18,7 @@ class BiologicalPreprocessor(Preprocessor):
     """Preprocessor for the biological modalities."""
 
     path = "02_DATA/01_BIOPHYSICAL PARAMETERS/BIOLOGICAL PROPERTIES"
+    file_glob = "*.tif"
     filename_regex = re.compile(r"^.*(?:\\\\?|/)(?P<modality>.+)(?:\\\\?|/)"
                                 r"(?P<reservoir>.+)(?:\\\\?|/)"
                                 r".*_(?P<season>[A-Za-z]+_\d{4})\.tif$")
@@ -49,7 +50,7 @@ class BiologicalPreprocessor(Preprocessor):
         files = defaultdict(list)
 
         # Group all the files by their reservoir and season.
-        for file in glob.glob(self.source_dir, recursive=True):
+        for file in glob.glob(os.path.join(self.source_dir, "**", self.file_glob), recursive=True):
             match = self.filename_regex.match(file)
             if match:
                 files[tuple(match.groupdict().values())[1:]].append((match.group("modality"), file))

@@ -1,11 +1,8 @@
-import os.path
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser
 
 
 class Preprocessor(ABC):
-    file_glob = "*.tif"
-
     def __init__(self, source_dir: str, target_dir: str):
         """Initialize the preprocessor.
 
@@ -13,7 +10,7 @@ class Preprocessor(ABC):
             source_dir: The source directory to look for files in.
             target_dir: The target directory to put the processed files in, preserving the directory structure.
         """
-        self.source_dir = os.path.join(source_dir, "**", self.file_glob)
+        self.source_dir = source_dir
         self.target_dir = target_dir
 
     @staticmethod
@@ -21,7 +18,7 @@ class Preprocessor(ABC):
         parent_parser.add_argument("-s", "--source-dir", type=str, required=True,
                                    help="The path to the source directory.")
         parent_parser.add_argument("-t", "--target-dir", type=str, required=True,
-                                   help="The parth to the target directory.")
+                                   help="The path to the target directory.")
         return parent_parser
 
     @abstractmethod

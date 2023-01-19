@@ -5,13 +5,14 @@ from itertools import islice
 from typing import Any, List, Optional
 
 import numpy as np
+import torch
 
 from edegruyl.preprocessing.strategies import Strategy
 
 
 class LookBackStrategy(Strategy):
     """Interpolation strategy that uses the last known sample to fill in missing samples."""
-    data: Optional[np.ndarray] = None
+    data: Optional[torch.Tensor] = None
 
     def __init__(self, buffer_size: int = 30, **kwargs: Any):
         """
@@ -22,16 +23,16 @@ class LookBackStrategy(Strategy):
         """
         self.buffer = deque(maxlen=buffer_size)
 
-    def first(self, data: np.ndarray) -> None:
+    def first(self, data: torch.Tensor) -> None:
         self.buffer.append(data)
 
     def interpolate(
             self,
-            data_prev: np.ndarray,
+            data_prev: torch.Tensor,
             t_prev: datetime,
-            data_next: np.ndarray,
+            data_next: torch.Tensor,
             t_next: datetime
-    ) -> List[np.ndarray]:
+    ) -> List[torch.Tensor]:
         days = (t_next - t_prev).days
         interpolated = []
 
@@ -51,7 +52,7 @@ class LookBackStrategy(Strategy):
 
             if self.data is None:
                 self.data = reduce(
-                    lambda a, b: np.where(np.isnan(a), b, a),
+                    lambda a, b: torch.where(a.isnan(), b, a),
                     filter(lambda a: a is not None, reversed(self.buffer))
                 )
 
