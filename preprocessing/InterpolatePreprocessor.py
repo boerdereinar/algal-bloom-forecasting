@@ -16,6 +16,7 @@ from tqdm import tqdm
 from edegruyl.datasets import BiologicalDataset, LandCoverDataset
 from edegruyl.preprocessing import Preprocessor
 from edegruyl.preprocessing.strategies import LinearStrategy, LookBackStrategy, Strategy
+from edegruyl.transforms import ClassMask
 
 
 class InterpolationStrategy(Enum):
@@ -88,7 +89,7 @@ class InterpolatePreprocessor(Preprocessor):
     def _preprocess_reservoir(self, reservoir: str, idx: int) -> None:
         """Preprocess a single reservoir."""
         biological = BiologicalDataset(os.path.join(self.source_dir, reservoir))
-        land_use = LandCoverDataset(self.land_use)
+        land_use = LandCoverDataset(self.land_use, transforms=ClassMask(1))
         dataset = biological & land_use
 
         with rasterio.open(next(biological.index.intersection(tuple(dataset.bounds), "raw"))) as src:
@@ -111,21 +112,20 @@ class InterpolatePreprocessor(Preprocessor):
 
         strategy = self.strategy
         t_prev = None
-        image_prev = None
 
         for bbox in bboxs:
             data = dataset[bbox]
             date = datetime.fromtimestamp(bbox.mint)
 
             image = data["image"]
-            mask = data["mask"]
+            mask = data["mask"][0]
 
             target_file_template = os.path.join(self.target_dir, reservoir, f"{reservoir}_%s_biological.tif")
 
-            if image_prev is None or t_prev is None:
+            if t_prev is None:
                 pbar.set_postfix({"date": date.strftime(self.date_format)})
                 # Handle first file in the reservoir
-                strategy.first(image)
+                image = strategy.first(image, date, mask)
                 target_file = target_file_template % date.strftime(self.date_format)
 
                 # Write the original data
@@ -135,7 +135,7 @@ class InterpolatePreprocessor(Preprocessor):
                 # Update progress
                 pbar.update(1)
             else:
-                interpolated_data = strategy.interpolate(image_prev, t_prev, image, date)
+                interpolated_data = strategy.interpolate(image, date, mask)
 
                 for dt, x in enumerate(interpolated_data):
                     t = (t_prev + timedelta(dt + 1))
@@ -149,76 +149,3 @@ class InterpolatePreprocessor(Preprocessor):
                     pbar.update(1)
 
             t_prev = date
-            image_prev = image
-
-    # def preprocess(self) -> None:
-    #     """Preprocess the datasets."""
-    #     reservoirs = defaultdict(list[File])
-    #     for file in glob.iglob(self.source_dir, recursive=True):
-    #         match = self.filename_regex.match(file)
-    #         if match:
-    #             reservoirs[match["reservoir"]].append(File(
-    #                 file,
-    #                 match["dataset"],
-    #                 datetime.strptime(match["date"], self.date_format)
-    #             ))
-    #
-    #     for k, v in reservoirs.items():
-    #         reservoirs[k] = sorted(v, key=lambda f: f.date)
-    #
-    #     Parallel(self.num_workers)(
-    #         delayed(self._preprocess_reservoir)(item, i) for i, item in enumerate(reservoirs.items())
-    #     )
-    #
-    # def _preprocess_reservoir(self, item: Tuple[str, List[File]], idx: int):
-    #     """Preprocess a single reservoir."""
-    #     reservoir, files = item
-    #
-    #     pbar = tqdm(
-    #         total=(files[-1].date - files[0].date).days + 1,
-    #         desc=f"{reservoir.capitalize():20}",
-    #         unit="days",
-    #         position=idx
-    #     )
-    #
-    #     # Create directory if it does not exist
-    #     os.makedirs(os.path.join(self.target_dir, reservoir), exist_ok=True)
-    #
-    #     strategy = self.strategy
-    #     t_prev = None
-    #     data_prev = None
-    #
-    #     for file in files:
-    #         target_file_template = os.path.join(self.target_dir, reservoir, f"{reservoir}_%s_{file.dataset}.tif")
-    #
-    #         with rasterio.open(file.file) as src:
-    #             data = src.read()
-    #
-    #             if data_prev is None or t_prev is None:
-    #                 pbar.set_postfix({"date": file.date.strftime(self.date_format)})
-    #                 # Handle first file in the reservoir
-    #                 strategy.first(data)
-    #                 target_file = target_file_template % file.date.strftime(self.date_format)
-    #
-    #                 # Write the original data
-    #                 with rasterio.open(target_file, "w", **src.profile) as target:
-    #                     target.write(data)
-    #
-    #                 # Update progress
-    #                 pbar.update(1)
-    #             else:
-    #                 interpolated_data = strategy.interpolate(data_prev, t_prev, data, file.date)
-    #
-    #                 for dt, x in enumerate(interpolated_data):
-    #                     t = (t_prev + timedelta(dt + 1))
-    #                     pbar.set_postfix({"date": t})
-    #                     target_file = target_file_template % t.strftime(self.date_format)
-    #
-    #                     # Write the interpolated data
-    #                     with rasterio.open(target_file, "w", **src.profile) as target:
-    #                         target.write(interpolated_data[dt])
-    #
-    #                     pbar.update(1)
-    #
-    #             t_prev = file.date
-    #             data_prev = data

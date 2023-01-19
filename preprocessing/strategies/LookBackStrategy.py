@@ -4,8 +4,8 @@ from functools import reduce
 from itertools import islice
 from typing import Any, List, Optional
 
-import numpy as np
 import torch
+from torch import Tensor
 
 from edegruyl.preprocessing.strategies import Strategy
 
@@ -23,17 +23,14 @@ class LookBackStrategy(Strategy):
         """
         self.buffer = deque(maxlen=buffer_size)
 
-    def first(self, data: torch.Tensor) -> None:
+    def first(self, data: Tensor, t: datetime, mask: Tensor) -> Tensor:
         self.buffer.append(data)
+        self.t_prev = t
 
-    def interpolate(
-            self,
-            data_prev: torch.Tensor,
-            t_prev: datetime,
-            data_next: torch.Tensor,
-            t_next: datetime
-    ) -> List[torch.Tensor]:
-        days = (t_next - t_prev).days
+        return data
+
+    def interpolate(self, data: Tensor, t: datetime, mask: Tensor) -> List[Tensor]:
+        days = (t - self.t_prev).days
         interpolated = []
 
         for i in range(days):
@@ -48,7 +45,7 @@ class LookBackStrategy(Strategy):
             if i == days - 1:
                 self.data = None
 
-            self.buffer.append(data_next if i == days - 1 else None)
+            self.buffer.append(data if i == days - 1 else None)
 
             if self.data is None:
                 self.data = reduce(
@@ -58,4 +55,5 @@ class LookBackStrategy(Strategy):
 
             interpolated.append(self.data)
 
+        self.t_prev = t
         return interpolated
