@@ -15,23 +15,17 @@ from tqdm import tqdm
 
 from edegruyl.datasets import BiologicalDataset, LandCoverDataset
 from edegruyl.preprocessing import Preprocessor
-from edegruyl.preprocessing.strategies import LinearStrategy, LookBackStrategy, Strategy
+from edegruyl.preprocessing.strategies import LinearStrategy, LookBackStrategy, NearestNeighbourStrategy, Strategy
 from edegruyl.transforms import ClassMask
 
 
 class InterpolationStrategy(Enum):
     LookBack = "Use the last known samples to fill in missing samples."
+    Nearest = "Use nearest neighbour interpolation to fill in missing samples."
     Linear = "Use linear interpolation to fill in missing samples."
 
     def __str__(self):
         return self.name
-
-
-class File:
-    def __init__(self, file: str, dataset: str, date: datetime):
-        self.file = file
-        self.dataset = dataset
-        self.date = date
 
 
 class InterpolatePreprocessor(Preprocessor):
@@ -75,6 +69,8 @@ class InterpolatePreprocessor(Preprocessor):
         match self.interpolation_strategy:
             case InterpolationStrategy.LookBack:
                 return LookBackStrategy(**self.kwargs)
+            case InterpolationStrategy.Nearest:
+                return NearestNeighbourStrategy(**self.kwargs)
             case InterpolationStrategy.Linear:
                 return LinearStrategy(**self.kwargs)
 

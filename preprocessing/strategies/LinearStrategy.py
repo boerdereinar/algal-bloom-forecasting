@@ -3,7 +3,7 @@ from typing import Any
 
 import numpy as np
 import torch
-from scipy.interpolate import LinearNDInterpolator, griddata
+from scipy.interpolate import griddata
 from torch import Tensor
 from torch.nn.functional import interpolate
 
