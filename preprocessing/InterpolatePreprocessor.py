@@ -1,15 +1,11 @@
-import glob
 import os
-import re
 from argparse import ArgumentParser
-from collections import defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 import rasterio
 from joblib import Parallel, delayed
-from rasterio.profiles import DefaultGTiffProfile
 from torchgeo.datasets import BoundingBox
 from tqdm import tqdm
 
