@@ -72,7 +72,7 @@ def reshape_output(
     num_features, reference_points = y.shape[-2:]
 
     if masked:
-        y_out = torch.zeros((batch_size, height, width, 3, num_features, reference_points))
+        y_out = torch.zeros((batch_size, height, width, 3, num_features, reference_points)).to(y)
         y_out[water_mask] = y.permute(1, 0, 2, 3)
         y_out = y_out.permute(0, 5, 3, 4, 1, 2)
     else:
@@ -196,7 +196,7 @@ class SingleChannelInterpolation(nn.Module):
         x_t = x_t.unsqueeze(-1).expand(-1, -1, -1, output_dim)
         d = d.unsqueeze(-1).expand(-1, -1, -1, output_dim)
         m = m.unsqueeze(-1).expand(-1, -1, -1, output_dim)
-        m = torch.log(m)
+        m = torch.log(m).nan_to_num(neginf=torch.finfo(torch.float).min)
 
         norm = (d - ref_t) * (d - ref_t)
         alpha = torch.log1p(torch.exp(self.kernel))[None, None, :, None]

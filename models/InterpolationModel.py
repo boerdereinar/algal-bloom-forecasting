@@ -86,7 +86,7 @@ class InterpolationModel(LightningModule):
             The predicted tensor of shape (batch, 1, height, width).
         """
         batch_size, observed_points, num_features, height, width = x.shape
-        water_mask_indices = torch.where(water_mask)
+        water_mask_indices = torch.where(water_mask[0])
 
         # Reshape input
         x_t, d, m = reshape_input(x, water_mask_indices, observed_x, self.hparams.masked)
@@ -132,7 +132,7 @@ class InterpolationModel(LightningModule):
     def compute_loss(self, batch: Dict[str, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
         x, y, water_mask, observed_x, observed_y = extract_batch(batch, True)
         batch_size, observed_points, num_features, height, width = x.shape
-        water_mask_indices = torch.where(water_mask)
+        water_mask_indices = torch.where(water_mask[0])
 
         # Reshape input
         x_t, d, m = reshape_input(x, water_mask_indices, observed_x, self.hparams.masked)
