@@ -195,8 +195,8 @@ class SingleChannelInterpolation(nn.Module):
 
         x_t = x_t.unsqueeze(-1).expand(-1, -1, -1, output_dim)
         d = d.unsqueeze(-1).expand(-1, -1, -1, output_dim)
-        m = m.unsqueeze(-1).expand(-1, -1, -1, output_dim)
         m = torch.log(m).nan_to_num(neginf=torch.finfo(torch.float).min)
+        m = m.unsqueeze(-1).expand(-1, -1, -1, output_dim)
 
         norm = (d - ref_t) * (d - ref_t)
         alpha = torch.log1p(torch.exp(self.kernel))[None, None, :, None]
