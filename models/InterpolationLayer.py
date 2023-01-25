@@ -200,17 +200,17 @@ class SingleChannelInterpolation(nn.Module):
 
         norm = (d - ref_t) * (d - ref_t)
         alpha = torch.log1p(torch.exp(self.kernel))[None, None, :, None]
-        w = torch.logsumexp(-alpha * norm + m, dim=2).nan_to_num(neginf=0)
+        w = torch.logsumexp(-alpha * norm + m, dim=2)
         w1 = w.unsqueeze(2).expand(-1, -1, self.observed_points, -1)
-        w1 = torch.exp(-alpha * norm + m - w1).nan_to_num(neginf=0)
+        w1 = torch.exp(-alpha * norm + m - w1)
         y = torch.einsum("ijkl,ijkl->ijl", w1, x_t)
 
         if reconstruction:
             return y, w, None
 
-        w_t = torch.logsumexp(-self.kappa * alpha * norm + m, dim=2).nan_to_num(neginf=0)
+        w_t = torch.logsumexp(-self.kappa * alpha * norm + m, dim=2)
         w_t = w_t.unsqueeze(2).expand(-1, -1, self.observed_points, -1)
-        w_t = torch.exp(-self.kappa * alpha * norm + m - w_t).nan_to_num(neginf=0)
+        w_t = torch.exp(-self.kappa * alpha * norm + m - w_t)
         y_trans = torch.einsum("ijkl,ijkl->ijl", w_t, x_t)
         return y, w, y_trans
 
