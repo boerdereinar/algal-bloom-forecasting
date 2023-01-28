@@ -15,13 +15,14 @@ class LinearModel(LightningModule):
     def __init__(
             self,
             window_size: int,
+            num_bands: int,
             learning_rate: float = 0.01,
             **kwargs: Any
     ) -> None:
         super(LinearModel, self).__init__()
         self.save_hyperparameters(ignore=list(kwargs))
 
-        n_in = window_size * 3
+        n_in = window_size * num_bands
         self.fc = nn.Linear(n_in, 1)
 
     @staticmethod
