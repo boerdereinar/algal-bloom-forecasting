@@ -15,21 +15,14 @@ class LinearModel(LightningModule):
     def __init__(
             self,
             window_size: int,
-            num_bands: int,
-            size: int,
             learning_rate: float = 0.01,
             **kwargs: Any
     ) -> None:
         super(LinearModel, self).__init__()
         self.save_hyperparameters(ignore=list(kwargs))
 
-        n_in = window_size * num_bands * size * size
-        n_out = size * size
-        self.fc = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(n_in, n_out),
-            nn.Unflatten(1, (size, size))
-        )
+        n_in = window_size * 3
+        self.fc = nn.Linear(n_in, 1)
 
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -38,7 +31,14 @@ class LinearModel(LightningModule):
         return parent_parser
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.fc(x)
+        batch_size, window_size, num_bands, height, width = x.shape
+
+        x = x.permute(0, 3, 4, 1, 2)
+        x = x.reshape(batch_size * height * width, window_size * num_bands)
+        x = self.fc(x)
+        x = x.reshape(batch_size, window_size, height, width)
+
+        return x
 
     def configure_optimizers(self) -> Optimizer:
         return Adam(self.parameters(), lr=self.hparams.learning_rate)  # type: ignore
