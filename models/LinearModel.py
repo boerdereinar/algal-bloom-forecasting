@@ -37,7 +37,7 @@ class LinearModel(LightningModule):
         x = x.permute(0, 3, 4, 1, 2)
         x = x.reshape(batch_size * height * width, window_size * num_bands)
         x = self.fc(x)
-        x = x.reshape(batch_size, window_size, height, width)
+        x = x.reshape(batch_size, height, width)
 
         return x
 
