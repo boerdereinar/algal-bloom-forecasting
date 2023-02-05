@@ -11,7 +11,7 @@ from matplotlib.colors import LogNorm
 from rasterio.windows import from_bounds
 from tqdm import tqdm
 
-from edegruyl.datasets import BiologicalDataset
+from edegruyl.datasets import BiologicalDataset, RioNegroDataset
 
 
 class Analyser:
@@ -154,7 +154,7 @@ class Analyser:
         # plt.rc("xtick.major", size=10)
         # plt.rc("xtick.minor", size=5)
 
-        self.print_summary()
+        # self.print_summary()
         self.plot_histograms()
         self.plot_sparsity()
 
@@ -173,7 +173,7 @@ class Analyser:
 
     def plot_histograms(self):
         """Plots the histograms of the analysis results using Matplotlib."""
-        fig, ax = plt.subplots(figsize=(10, 5))
+        fig, ax = plt.subplots(figsize=(5, 2.5), dpi=200)
         plt.ylabel("density")
         ax.set_xscale("log")
 
@@ -182,7 +182,8 @@ class Analyser:
             h = h / h.max(initial=1)
             bins = (bins[1:] + bins[:-1]) / 2
 
-            plt.plot(bins, h, label=band)
+            p = plt.plot(bins, h, label=band)
+            plt.axvline(RioNegroDataset.CLIP[i], color=p[0].get_color(), linestyle="dashed")
 
         plt.legend()
         fig.tight_layout()
@@ -198,39 +199,40 @@ class Analyser:
             for item in self.dataset.index.intersection(self.dataset.index.bounds, True)
         )
 
-        # Plot temporal sparsity
+        # Temporal sparsity
         dt = [(d2 - d1).days for d1, d2 in zip(dates, dates[1:])]
         binned_dt = np.bincount(dt)
-        fig = plt.figure(figsize=(5, 3), dpi=200)
-        if not self.exclude_titles:
-            plt.title("Days between consecutive samples")
 
-        plt.xlabel("days")
-        plt.ylabel("samples")
-        plt.bar(range(len(binned_dt)), binned_dt)
-
-        fig.tight_layout()
-
-        if self.save_plots and self.save_dir:
-            plt.savefig(os.path.join(self.save_dir, f"{self.reservoir}_days_between_samples.png"))
-        plt.show()
-
-        # Plot spatial sparsity
+        # Plot temporal/spatial sparsity
         for i, band in enumerate(self.dataset.all_bands):
+            # Spatial sparsity
             missing_samples = np.ma.masked_where(~self.water_coverage, np.zeros(self.water_coverage.shape))
             missing_samples[np.where(self.water_coverage)] = self.total_samples - self.measurements[i]
 
-            plt.figure(figsize=(5, 3), dpi=200)
+            # Plot
+            fig, (ax1, ax2) = plt.subplots(1, 2, width_ratios=[2, 3], figsize=(8, 3), dpi=200)
+
             if not self.exclude_titles:
-                plt.title(f"{band.capitalize()} missing spatial samples")
-            plt.imshow(missing_samples, norm=LogNorm(10))
-            plt.gca().set_xticks([])
-            plt.gca().set_yticks([])
-            plt.colorbar()
+                ax1.set_title("Temporal sparsity")
+                ax2.set_title(f"Spatial sparsity ({band.capitalize()})")
+
+            ax1.set_xlabel("days")
+            ax1.set_ylabel("samples")
+            ax1.bar(range(len(binned_dt)), binned_dt)
+
+            ax2.set_xticks([])
+            ax2.set_yticks([])
+            im = ax2.imshow(missing_samples, norm=LogNorm(10))
+
+            fig.tight_layout()
+            fig.subplots_adjust(right=0.92)
+            cax = fig.add_axes([0.92, 0.195, 0.02, 0.685])
+            fig.colorbar(im, cax=cax)
+
             if self.save_plots and self.save_dir:
-                path = os.path.join(self.save_dir, f"{self.reservoir}_{band}_missing_spatial_samples.png")
+                path = os.path.join(self.save_dir, f"{self.reservoir}_{band}_spatial_temporal_sparsity.png")
                 plt.savefig(path, transparent=True)
-            plt.show()
+            fig.show()
 
     @staticmethod
     def _load_file(file: str):
